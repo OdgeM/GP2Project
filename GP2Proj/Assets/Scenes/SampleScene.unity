@@ -155,7 +155,7 @@ Camera:
   m_GameObject: {fileID: 330585543}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
+  m_ClearFlags: 2
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -178,10 +178,10 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 2000
   field of view: 60
-  orthographic: 0
-  orthographic size: 5
+  orthographic: 1
+  orthographic size: 1500
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -206,7 +206,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalPosition: {x: 1669, y: 319, z: -1072}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -461,19 +461,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3198788e80616d344bc5e62e718c16d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CityGenerator
-  defaultSegmentLength: 300
-  motorwaySegmentLength: 400
+  defaultSegmentLength: 100
+  motorwaySegmentLength: 120
   defaultSegmentWidth: 6
   motorwaySegmentWidth: 16
   branchAngleMean: 90
-  branchAngleSD: 1
-  straightAngleMean: 3
-  straightAngleSD: 15
+  branchAngleSD: 20
+  straightAngleMean: 20
+  straightAngleSD: 1
   motorwayBranchDelay: 15
+  rectMultiplier: 0.25
   lineMaterial: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
-  defaultBranchProbability: 0.4
-  motorwayBranchProbability: 0.05
-  maxSegments: 2000
+  defaultBranchProbability: 0.1
+  motorwayBranchProbability: 0.1
+  maxSegments: 1000
   seed: 12345
 --- !u!4 &960403192
 Transform:
@@ -484,7 +485,7 @@ Transform:
   m_GameObject: {fileID: 960403190}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2392.2175, y: -130.46574, z: 1038.4617}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
