@@ -461,21 +461,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3198788e80616d344bc5e62e718c16d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CityGenerator
-  defaultSegmentLength: 100
+  defaultSegmentLength: 300
   motorwaySegmentLength: 120
   defaultSegmentWidth: 6
   motorwaySegmentWidth: 16
   branchAngleMean: 90
-  branchAngleSD: 20
-  straightAngleMean: 20
-  straightAngleSD: 1
+  branchAngleSD: 50
+  straightAngleMean: 10
+  straightAngleSD: 5
   motorwayBranchDelay: 15
   rectMultiplier: 0.25
   lineMaterial: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
   defaultBranchProbability: 0.1
-  motorwayBranchProbability: 0.1
-  maxSegments: 1000
+  motorwayBranchProbability: 0.25
+  maxSegments: 100
   seed: 12345
+  mergeThreshold: 0.1
+  minLotArea: 10
 --- !u!4 &960403192
 Transform:
   m_ObjectHideFlags: 0
