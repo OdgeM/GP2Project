@@ -443,7 +443,7 @@ GameObject:
   - component: {fileID: 960403192}
   - component: {fileID: 960403191}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: CityGenerator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -466,15 +466,15 @@ MonoBehaviour:
   defaultSegmentWidth: 6
   motorwaySegmentWidth: 16
   branchAngleMean: 90
-  branchAngleSD: 50
-  straightAngleMean: 10
+  branchAngleSD: 0
+  straightAngleMean: 1
   straightAngleSD: 5
   motorwayBranchDelay: 15
   rectMultiplier: 0.25
   lineMaterial: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
   defaultBranchProbability: 0.1
   motorwayBranchProbability: 0.25
-  maxSegments: 100
+  maxSegments: 2000
   seed: 12345
   mergeThreshold: 0.1
   minLotArea: 10
@@ -486,7 +486,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 960403190}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
