@@ -19,6 +19,8 @@ public class CityGenerator : MonoBehaviour
     public float straightAngleSD = 15;
     public int motorwayBranchDelay = 15;
 
+    public float IntersectionThreshold = 5;
+
     public float rectMultiplier = .25f;
 
     public Material lineMaterial;
@@ -32,16 +34,87 @@ public class CityGenerator : MonoBehaviour
     public List<RoadSegment> priorityQueue = new();
     public List<RoadSegment> segmentList = new();
 
+    public List<RotatedRect> buildings = new();
+
     public List<Node> Nodes = new();
     public List<Edge> Edges = new();
 
     public float mergeThreshold = 0.1f;
     public float minLotArea = 10f;
 
+    public int width = 1920;
+    public int height = 1080;
+    private List<RoadSegment> Bounding;
+
 
     void Start()
     {
+        
+
+
+
+
+        /*
+        RoadSegment segment = new RoadSegment
+           (
+               0,
+               new RoadAttribute(new Vector2(0, 0), motorwaySegmentLength, 0),
+               new QueryAttribute(true, motorwaySegmentWidth)
+           );
+        priorityQueue.Add(segment);*/
+
+
+    }
+    public void CreateCity()
+    {
         Random.InitState(seed);
+
+        Bounding = new();
+
+        RoadSegment boundingSegment = new
+            (
+                0,
+                new RoadAttribute(new Vector2(-width / 2, height / 2), width, 0),
+                new QueryAttribute()
+            );
+
+        Bounding.Add(boundingSegment);
+
+        boundingSegment = new
+            (
+                0,
+                new RoadAttribute(new Vector2(-width / 2, height / 2), height, -90),
+                new QueryAttribute()
+            );
+
+        Bounding.Add(boundingSegment);
+
+        boundingSegment = new
+           (
+               0,
+               new RoadAttribute(new Vector2(-width / 2, -height / 2), width, 0),
+               new QueryAttribute()
+           );
+
+        Bounding.Add(boundingSegment);
+
+
+        boundingSegment = new
+           (
+               0,
+               new RoadAttribute(new Vector2(width / 2, height / 2), height, -90),
+               new QueryAttribute()
+           );
+
+        Bounding.Add(boundingSegment);
+
+
+
+        foreach (var b in Bounding)
+        {
+            b.RotRect.draw();
+        }
+
 
         // Initialise Priority Queue
         RoadSegment segment = new RoadSegment
@@ -76,21 +149,8 @@ public class CityGenerator : MonoBehaviour
             );
         priorityQueue.Add(segment);
 
-
-
-
-        /*
-        RoadSegment segment = new RoadSegment
-           (
-               0,
-               new RoadAttribute(new Vector2(0, 0), motorwaySegmentLength, 0),
-               new QueryAttribute(true, motorwaySegmentWidth)
-           );
-        priorityQueue.Add(segment);*/
-
-
         Generate();
-
+        Debug.Log(segmentList.Count());
         foreach (var seg in segmentList)
         {
             seg.RotRect = new(seg, 0);
@@ -101,10 +161,10 @@ public class CityGenerator : MonoBehaviour
 
         var blocks = ExtractFaces();
         blocks = RemoveOuterFace(blocks);
-        
+
         foreach (var block in blocks)
         {
-            List<Lot> lots = new();
+            List<RotatedRect> lots = new();
             Vector2 Origin = new();
             var Rastered = RasterisePolygon(block, 50, out Origin);
 
@@ -113,12 +173,10 @@ public class CityGenerator : MonoBehaviour
                 lots = GenerateLot(block, c, 10, 40, 75, 20, 50, lots);
                 
             }
-
-            DrawLots(lots);
-
+            buildings.AddRange(lots);
         }
     }
-    bool PointInPolygon(Vector2 p, List<Vector2> poly)
+    public bool PointInPolygon(Vector2 p, List<Vector2> poly)
     {
         bool inside = false;
 
@@ -190,7 +248,7 @@ public class CityGenerator : MonoBehaviour
         return CellCentres;
     }
 
-    List<Lot> GenerateLot(
+    List<RotatedRect> GenerateLot(
     List<Vector2> poly,
     Vector2 position,
     int attempts,
@@ -198,7 +256,7 @@ public class CityGenerator : MonoBehaviour
     float maxWidth,
     float minDepth,
     float maxDepth,
-    List<Lot> lots)
+    List<RotatedRect> lots)
     {
         for (int i = 0; i < attempts; i++)
         {
@@ -208,7 +266,7 @@ public class CityGenerator : MonoBehaviour
             {
                 Vector2 a = n;
                 Vector2 b = poly[(index + 1) % poly.Count];
-                return  Vector2.Distance((a + b) / 2, position);
+                return Vector2.Distance((a + b) / 2, position);
             }
             ).ToList();
 
@@ -250,7 +308,7 @@ public class CityGenerator : MonoBehaviour
             if (!inside) continue;
 
             bool overlaps = false;
-            foreach (var other in lots.Select(n=>n.Rect))
+            foreach (var other in lots)
             {
                 if (rect.Collides(other))
                 {
@@ -259,23 +317,23 @@ public class CityGenerator : MonoBehaviour
                 }
             }
             if (overlaps) continue;
-           
 
-            lots.Add(new(rect));
+
+            lots.Add(rect);
         }
 
         return lots;
     }
 
-    void DrawLots(List<Lot> lots)
+    void DrawLots(List<RotatedRect> lots)
     {
-        foreach (var r in lots.Select(n => n.Rect))
+        foreach (var r in lots)
         {
             var corners = r.Vertices;
 
             for (int i = 0; i < 4; i++)
             {
-                Debug.DrawLine(corners[i], corners[(i    + 1) % 4], Color.green, 100f);
+                Debug.DrawLine(corners[i], corners[(i + 1) % 4], Color.green, 100f);
             }
         }
     }
@@ -284,7 +342,7 @@ public class CityGenerator : MonoBehaviour
 
     public void Generate()
     {
-        while (priorityQueue.Count > 0)
+        while (priorityQueue.Count > 0 && segmentList.Count < maxSegments)
         {
             priorityQueue = priorityQueue.OrderByDescending(o => o.t).ToList();
             RoadSegment segment = priorityQueue.Last();
@@ -295,14 +353,17 @@ public class CityGenerator : MonoBehaviour
 
             if (state)
             {
-                if (segmentList.Count < maxSegments)
-                {
-                    GlobalGoals(segment);
-                }
+                GlobalGoals(segment);
 
                 AddSegment(segment);
             }
+
+
+
+
         }
+
+        
 
 
     }
@@ -313,40 +374,6 @@ public class CityGenerator : MonoBehaviour
 
 
         segmentList.Add(segment);
-
-        if (segment.isBranch)
-        {
-
-            GameObject go = new GameObject();
-            go.AddComponent<LineRenderer>();
-            segment.line = go.GetComponent<LineRenderer>();
-            float width = defaultSegmentWidth;
-            if (segment.qa.isMotorway)
-            {
-                width = motorwaySegmentWidth;
-            }
-
-            segment.line.startWidth = width;
-            segment.line.endWidth = width;
-            segment.line.material = lineMaterial;
-            segment.line.SetPosition(0, segment.ra.startLocation);
-            segment.line.SetPosition(1, segment.ra.endLocation);
-
-
-            //segment.RotRect.draw();
-            //Color colour = Random.ColorHSV();
-            //segment.line.startColor = colour;
-            //segment.line.endColor = colour;
-
-
-
-
-        }
-        else
-        {
-            segment.line = segment.parent.line;
-            segment.DrawSegment();
-        }
 
 
         Node NodeStart = GetOrCreateNode(segment.ra.startLocation);
@@ -569,7 +596,7 @@ public class CityGenerator : MonoBehaviour
                     }
                     else
                     {
-                        angle = 1 * RandomAngle(straightAngleMean, straightAngleSD);
+                        angle = -1 * RandomAngle(straightAngleMean, straightAngleSD);
                     }
                 }
 
@@ -625,21 +652,65 @@ public class CityGenerator : MonoBehaviour
 
     public bool LocalConstraints(RoadSegment segment)
     {
+        if (Mathf.Abs(segment.ra.endLocation.x) > width / 2 || Mathf.Abs(segment.ra.endLocation.y) > height / 2)
+        {
+            foreach (var b in Bounding)
+            {
+              Vector2? intersection = Intersect(b, segment);
+              if (intersection.HasValue)
+                {
+                    if (intersection.Value == segment.ra.startLocation)
+                    {
+                        return false;
+                    }
+                    segment.ra.endLocation = intersection.Value;
+                    segment.RotRect = new(segment);
+                    segment.qa.isSevered = true;
+                    break;
+                }
+            }
+
+        }
+
+
+
+        if (Nodes.Count() > 0)
+        {
+            var node = Nodes.Where(n => Vector2.Distance(n.Position, segment.ra.startLocation) > 1);
+            node = node.OrderBy(n => Vector2.Distance(n.Position, segment.ra.endLocation));
+
+            if (segment.ra.startLocation == new Vector2(-480, (float)-4.196293e-05))
+            {
+                Debug.Log(node.First().Position);
+                Debug.Log(node.First().Position);
+                Debug.Log(Vector2.Distance(node.First().Position, segment.ra.startLocation));
+                Debug.Log(Vector2.Distance(node.First().Position, segment.ra.endLocation));
+            }
+
+            if (Vector2.Distance(node.First().Position, segment.ra.endLocation) < IntersectionThreshold)
+            {
+                segment.ra.endLocation = node.First().Position;
+            }
+
+            segment.RotRect = new(segment);
+        }
+
+
         List<RoadSegment> closeRoads = segmentList.Where((s) => segment.RotRect.Collides(s.RotRect)).ToList();
+
+
+
 
         Vector2? closestIntersection = null;
         RoadSegment otherSegment = null;
         foreach (RoadSegment s in closeRoads)
         {
-            if (s != segment && s != segment.parent && s.parent != segment && s != segment.parent.parent)
+            if (s != segment && s != segment.parent && s.parent != segment)
             {
-                if (segment.ra.startLocation == new Vector2(840, -100) && s.ra.endLocation == new Vector2(780, -100))
-                {
-                    Intersect(segment, s, true);
-                }
+    
 
                 Vector2? intersection = Intersect(segment, s);
-                if (intersection.HasValue && Vector2.Distance(intersection.Value, segment.ra.startLocation) > 0.01f)
+                if (intersection.HasValue && Vector2.Distance(intersection.Value, segment.ra.startLocation) > 1f)
                 {
 
 
@@ -656,20 +727,99 @@ public class CityGenerator : MonoBehaviour
         if (closestIntersection.HasValue)
         {
 
+            if (Nodes.Count() > 0)
+            {
+                var node = Nodes.Where(n => Vector2.Distance(n.Position, segment.ra.startLocation) > 1);
+                node = node.OrderBy(n => Vector2.Distance(n.Position, closestIntersection.Value));
+
+                if (segment.ra.startLocation == new Vector2(-480, (float)-4.196293e-05))
+                {
+                    Debug.Log(node.First().Position);
+                    Debug.Log(node.First().Position);
+                    Debug.Log(Vector2.Distance(node.First().Position, segment.ra.startLocation));
+                    Debug.Log(Vector2.Distance(node.First().Position, segment.ra.endLocation));
+                }
+
+                if (Vector2.Distance(node.First().Position, closestIntersection.Value) < IntersectionThreshold)
+                {
+                    closestIntersection = node.First().Position;
+                }
+
+
+            }
+
+
+
             /*
             if (Mathf.Abs(Vector2.Dot((otherSegment.ra.endLocation-otherSegment.ra.startLocation).normalized, (segment.ra.endLocation - segment.ra.startLocation).normalized)) > 0.95f)
             {
                 return false;
             }*/
+            segment.ra.endLocation = closestIntersection.Value;
 
             segment.qa.isSevered = true;
-            segment.ra.endLocation = closestIntersection.Value;
             segment.ra.distance = Vector2.Distance(closestIntersection.Value, segment.ra.startLocation);
-
             segment.RotRect = new(segment);
+
+
+
 
             SplitSegment(otherSegment, closestIntersection.Value);
         }
+
+        if (segmentList.Count(n => n.ra.startLocation == segment.ra.startLocation && n.ra.endLocation == segment.ra.endLocation) > 0)
+        {
+            var other = segmentList.Where(n => n.ra.startLocation == segment.ra.startLocation && n.ra.endLocation == segment.ra.endLocation).First();
+            if (segment.qa.isMotorway && !other.qa.isMotorway)
+            {
+                Debug.Log("HERE?");
+                other.SetMotorway(true, motorwaySegmentWidth);
+            }
+
+
+            return false;
+        }
+
+        var PossibleDupes = segmentList.Where(n => n.ra.startLocation == segment.ra.startLocation || n.ra.endLocation == segment.ra.endLocation || n.ra.startLocation == segment.ra.endLocation || n.ra.endLocation == segment.ra.endLocation);
+
+        Vector2 thisLine = segment.ra.endLocation - segment.ra.startLocation;
+
+        foreach (var p in PossibleDupes)
+        {
+
+            Vector2 otherLine = p.ra.endLocation - p.ra.startLocation;
+
+            float angle = Mathf.Acos(Vector2.Dot(otherLine, thisLine) / (otherLine.magnitude * thisLine.magnitude));
+            if (angle < .1 || Mathf.Abs((Mathf.PI - angle)) < .1)
+            {
+                Debug.Log("=-=-=-=-=-=");
+                Debug.Log(segment.ra.startLocation);
+                Debug.Log(segment.ra.endLocation);
+                float directionComp = Vector2.Distance(thisLine.normalized, otherLine.normalized); ;
+                if (p.ra.startLocation == segment.ra.startLocation)
+                {
+                    // Pointing same direction = overlap
+                    if (directionComp < 0.5f)
+                    {
+                        return false;
+                    }
+
+                }
+                else
+                {
+                    // Pointing different direction = overlap
+
+                    if (directionComp > 0.5f)
+                    {
+
+                        return false;
+                    }
+                }
+
+            }
+
+        }
+
 
 
         return true;
@@ -740,6 +890,12 @@ public class CityGenerator : MonoBehaviour
             // Debug.DrawLine(new Vector2(rectangle.xMin, rectangle.yMin), new Vector2(rectangle.xMax, rectangle.yMin), Color.red, Mathf.Infinity);
         }
 
+        public void SetMotorway(bool motorway, float width)
+        {
+            qa.SetMotorway(motorway, width);
+            RotRect = new(this);
+        }
+
         public RoadSegment ContinueRoad(float angle = 0)
         {
             RoadAttribute newRa = new RoadAttribute(ra.endLocation, ra.distance, ra.angle + angle);
@@ -749,6 +905,7 @@ public class CityGenerator : MonoBehaviour
             newSegment.isBranch = false;
             return newSegment;
         }
+
 
         public RoadSegment BranchRoad(float angle, float length, float width, bool motorway = false, int delay = 1)
         {
@@ -846,34 +1003,34 @@ public class CityGenerator : MonoBehaviour
     }
 
 
-    
 
 
-public class HalfEdge
-{
-    public Node start;
-    public Node end;
 
-    public HalfEdge(Node s, Node e)
+    public class HalfEdge
     {
-        start = s;
-        end = e;
-    }
+        public Node start;
+        public Node end;
 
-    public override int GetHashCode()
-    {
-        return start.GetHashCode() ^ end.GetHashCode();
-    }
-
-    public override bool Equals(object obj)
-    {
-        if (obj is HalfEdge other)
+        public HalfEdge(Node s, Node e)
         {
-            return other.start == start && other.end == end;
+            start = s;
+            end = e;
         }
-        return false;
+
+        public override int GetHashCode()
+        {
+            return start.GetHashCode() ^ end.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is HalfEdge other)
+            {
+                return other.start == start && other.end == end;
+            }
+            return false;
+        }
     }
-}
 }
 
 
@@ -910,5 +1067,10 @@ public struct QueryAttribute
         isSevered = severed;
     }
 
+    public void SetMotorway(bool motorway, float width)
+    {
+        isMotorway = motorway;
+        this.width = width;
+    }
 }
 

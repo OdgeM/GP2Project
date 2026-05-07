@@ -1,10 +1,18 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Node
 {
     public Vector2 Position;
     public List<Edge> Edges = new();
+    public bool Motorway = false;
+
+    public Node(bool isMotorway = false)
+    {
+        Motorway = isMotorway;
+    }
+
 };
 
 public class Edge
@@ -15,24 +23,23 @@ public class Edge
     public Node Other(Node n) => n == a ? b : a;
 };
 
-public class Lot 
-{
-    public Vector2 Location;
-    public RotatedRect Rect;
 
-    public Lot(RotatedRect rect)
-    {
-        Rect = rect;
-    }
-}
 
 public class RotatedRect
 {
     public List<Vector2> Vertices;
     public List<Vector2> Edges;
     public List<Vector2> Normals;
+    public Vector2 Centre;
 
     public RotatedRect(CityGenerator.RoadSegment rs, float Lookahead = .25f)
+    {
+        FromSegment(rs, Lookahead);
+
+
+    }
+    
+    private void FromSegment(CityGenerator.RoadSegment rs, float Lookahead = 0)
     {
         Vector2 Norm = (rs.ra.endLocation - rs.ra.startLocation).normalized;
         Vector2 widthFactor = Vector2.Perpendicular(Norm) * rs.qa.width / 2;
@@ -46,6 +53,8 @@ public class RotatedRect
         Vertices.Add(rs.ra.endLocation - widthFactor + Norm * Lookahead * rs.ra.distance);
         Vertices.Add(rs.ra.endLocation + widthFactor + Norm * Lookahead * rs.ra.distance);
 
+        Centre = new Vector2(Vertices.Select(n => n.x).Average(), Vertices.Select(n => n.y).Average());
+
         Edges.Add(Vertices[1] - Vertices[0]);
         Edges.Add(Vertices[2] - Vertices[1]);
         Edges.Add(Vertices[3] - Vertices[2]);
@@ -56,8 +65,6 @@ public class RotatedRect
             Normals.Add(Vector2.Perpendicular(e));
 
         }
-
-
 
     }
 
@@ -88,13 +95,13 @@ public class RotatedRect
         }
     }
 
-    public RotatedRect(Vector2 center, Vector2 size, float angle)
+    public RotatedRect(Vector2 centre, Vector2 size, float angle)
     {
         Vertices = new();
 
         Edges = new();
         Normals = new();
-
+        Centre = centre;
         float halfW = size.x * 0.5f;
         float halfH = size.y * 0.5f;
 
@@ -121,7 +128,7 @@ public class RotatedRect
             float y = p.x * sin + p.y * cos;
 
             // Translate
-            Vertices.Add(new Vector2(x, y) + center);
+            Vertices.Add(new Vector2(x, y) + centre);
         }
 
         for (int i = 0; i < Vertices.Count; i++)
@@ -204,12 +211,24 @@ public class RotatedRect
 public class Map : MonoBehaviour
 {
     public CityGenerator Generator;
+    public CityRenderer Renderer;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        Generator = gameObject.AddComponent<CityGenerator>();
-        Generator.Generate();
+        Generator.CreateCity();
+        Debug.Log(Generator.segmentList.Count);
+        foreach (var r in Generator.segmentList)
+        {
+            Renderer.roads.Add(r);
+        }
+
+        foreach (var b in Generator.buildings)
+        {
+            Renderer.buildings.Add(b);
+        }
+
+        Renderer.Generate();
     }
 
     // Update is called once per frame
