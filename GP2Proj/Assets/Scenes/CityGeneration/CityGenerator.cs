@@ -1,22 +1,30 @@
 using JetBrains.Annotations;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.UIElements;
+using Random = UnityEngine.Random;
 
 
 public class CityGenerator : MonoBehaviour
 {
+    public Texture WaterMap;
+
     public float defaultSegmentLength = 300;
     public float motorwaySegmentLength = 120;
     public float defaultSegmentWidth = 6;
     public float motorwaySegmentWidth = 16;
     public float branchAngleMean = 15;
     public float branchAngleSD = 1;
+    public float motorwayBranchAngleMean = 15;
+    public float motorwayBranchAngleSD = 1;
     public float straightAngleMean = 3;
     public float straightAngleSD = 15;
+    public float motorwayStraightAngleMean = 3;
+    public float motorwayStraightAngleSD = 15;
     public int motorwayBranchDelay = 15;
 
     public float IntersectionThreshold = 5;
@@ -49,9 +57,7 @@ public class CityGenerator : MonoBehaviour
 
     void Start()
     {
-        
-
-
+       
 
 
         /*
@@ -166,11 +172,11 @@ public class CityGenerator : MonoBehaviour
         {
             List<RotatedRect> lots = new();
             Vector2 Origin = new();
-            var Rastered = RasterisePolygon(block, 50, out Origin);
+            var Rastered = RasterisePolygon(block, 5, out Origin);
 
             foreach (var c in Rastered)
             {
-                lots = GenerateLot(block, c, 10, 40, 75, 20, 50, lots);
+                lots = GenerateLot(block, c, 1, 4, 7.5f, 2, 5, lots);
                 
             }
             buildings.AddRange(lots);
@@ -238,7 +244,7 @@ public class CityGenerator : MonoBehaviour
 
                 float distanceFromRoad = Nodes.Select(n => Vector2.Distance(n.Position, worldPos)).Min();
 
-                if (PointInPolygon(worldPos, poly) && segmentList.Count(n => n.RotRect.Collides(rotatedRect)) == 0 && distanceFromRoad < 80)
+                if (PointInPolygon(worldPos, poly) && segmentList.Count(n => n.RotRect.Collides(rotatedRect)) == 0 && distanceFromRoad < 8)
                 {
                     CellCentres.Add(worldPos);
                 }
@@ -318,6 +324,16 @@ public class CityGenerator : MonoBehaviour
             }
             if (overlaps) continue;
 
+            foreach (var other in segmentList)
+            {
+                if (rect.Collides(other.RotRect))
+                {
+                    overlaps = true;
+                    break;
+                }
+            }
+            if (overlaps) continue; 
+
 
             lots.Add(rect);
         }
@@ -357,6 +373,10 @@ public class CityGenerator : MonoBehaviour
 
                 AddSegment(segment);
             }
+            else
+            {
+                segment.isFailed = true;
+            }
 
 
 
@@ -387,6 +407,15 @@ public class CityGenerator : MonoBehaviour
         NodeEnd.Edges.Add(e);
 
         segment.edge = e;
+
+        if (segment.next == null || segment.next.isFailed)
+        {
+            var PossibleNext = segmentList.Where(n => n.ra.startLocation == segment.ra.endLocation);
+            if (PossibleNext.Count() > 0)
+            {
+                segment.next = PossibleNext.First();
+            }
+        }
 
     }
 
@@ -463,8 +492,8 @@ public class CityGenerator : MonoBehaviour
                 if (visited.Contains(he)) continue;
                 List<Vector2> face = new List<Vector2>();
                 HalfEdge current = he;
-
-                while (true)
+                int test = 0;
+                while (test++ < Edges.Count-2)
                 {
                     visited.Add(current);
                     face.Add(current.start.Position);
@@ -480,6 +509,12 @@ public class CityGenerator : MonoBehaviour
                         break;
                     }
                 }
+
+                if (test == Edges.Count - 2)
+                {
+                    Debug.Log("HERE");
+                }
+
                 if (face.Count > 2)
                     faces.Add(face);
             }
@@ -592,11 +627,11 @@ public class CityGenerator : MonoBehaviour
                 {
                     if (Random.value < 0.5f)
                     {
-                        angle = RandomAngle(straightAngleMean, straightAngleSD);
+                        angle = RandomAngle(motorwayStraightAngleMean, motorwayStraightAngleSD);
                     }
                     else
                     {
-                        angle = -1 * RandomAngle(straightAngleMean, straightAngleSD);
+                        angle = -1 * RandomAngle(motorwayStraightAngleMean, motorwayStraightAngleSD);
                     }
                 }
 
@@ -607,11 +642,11 @@ public class CityGenerator : MonoBehaviour
                 {
                     if (Random.value < .5f)
                     {
-                        angle = RandomAngle(branchAngleMean, straightAngleSD);
+                        angle = RandomAngle(motorwayBranchAngleMean, motorwayBranchAngleSD);
                     }
                     else
                     {
-                        angle = -1 * RandomAngle(branchAngleMean, straightAngleSD);
+                        angle = -1 * RandomAngle(motorwayBranchAngleMean, motorwayBranchAngleSD);
                     }
 
                     branches.Add(lastSegment.BranchRoad(angle, lastSegment.ra.distance, motorwaySegmentWidth, true));
@@ -619,7 +654,10 @@ public class CityGenerator : MonoBehaviour
             }
             else if (Random.value < .75f)
             {
-                branches.Add(lastSegment.ContinueRoad());
+                float angle = RandomAngle(straightAngleMean, straightAngleSD);
+                if (Random.value < .5f)
+                    angle *= -1;
+                branches.Add(lastSegment.ContinueRoad(angle));
             }
 
             if (Random.value < defaultBranchProbability)
@@ -912,6 +950,12 @@ public class CityGenerator : MonoBehaviour
             RoadAttribute newRa = new RoadAttribute(ra.endLocation, length, ra.angle + angle);
             QueryAttribute newQuery = new QueryAttribute(motorway, width);
             RoadSegment newSegment = new RoadSegment(t + delay, newRa, newQuery);
+
+            if (next == null)
+            {
+                next = newSegment;
+            }
+
             branches.Add(newSegment);
             newSegment.parent = this;
             return newSegment;
@@ -1006,10 +1050,10 @@ public class CityGenerator : MonoBehaviour
 
 
 
-    public class HalfEdge
+    public readonly struct HalfEdge : IEquatable<HalfEdge>
     {
-        public Node start;
-        public Node end;
+        public readonly Node start;
+        public readonly Node end;
 
         public HalfEdge(Node s, Node e)
         {
@@ -1017,18 +1061,20 @@ public class CityGenerator : MonoBehaviour
             end = e;
         }
 
-        public override int GetHashCode()
+        public bool Equals(HalfEdge other)
         {
-            return start.GetHashCode() ^ end.GetHashCode();
+            return ReferenceEquals(other.start, start)
+                && ReferenceEquals(other.end, end);
         }
 
         public override bool Equals(object obj)
         {
-            if (obj is HalfEdge other)
-            {
-                return other.start == start && other.end == end;
-            }
-            return false;
+            return obj is HalfEdge other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(start, end);
         }
     }
 }

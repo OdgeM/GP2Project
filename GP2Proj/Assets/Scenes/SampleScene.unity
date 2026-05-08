@@ -461,26 +461,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3198788e80616d344bc5e62e718c16d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CityGenerator
-  defaultSegmentLength: 300
-  motorwaySegmentLength: 120
-  defaultSegmentWidth: 6
-  motorwaySegmentWidth: 16
+  WaterMap: {fileID: 0}
+  defaultSegmentLength: 5
+  motorwaySegmentLength: 12
+  defaultSegmentWidth: 0.6
+  motorwaySegmentWidth: 1.6
   branchAngleMean: 90
-  branchAngleSD: 0
-  straightAngleMean: 1
-  straightAngleSD: 5
+  branchAngleSD: 30
+  motorwayBranchAngleMean: 90
+  motorwayBranchAngleSD: 25
+  straightAngleMean: 3
+  straightAngleSD: 20
+  motorwayStraightAngleMean: 1
+  motorwayStraightAngleSD: 15
   motorwayBranchDelay: 15
-  IntersectionThreshold: 5
+  IntersectionThreshold: 2
   rectMultiplier: 0.25
   lineMaterial: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
-  defaultBranchProbability: 0.1
+  defaultBranchProbability: 0.3
   motorwayBranchProbability: 0.25
-  maxSegments: 1000
+  maxSegments: 2500
   seed: 12345
   mergeThreshold: 0.1
   minLotArea: 10
-  width: 5000
-  height: 7500
+  width: 1000
+  height: 750
 --- !u!4 &960403192
 Transform:
   m_ObjectHideFlags: 0
@@ -540,7 +545,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
+  m_DynamicOccludee: 0
   m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
@@ -599,6 +604,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b6a170be0c390a4996b87516d8c3281, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CityRenderer
+  roadBorderWidth: 0.5
 --- !u!1 &1818868104
 GameObject:
   m_ObjectHideFlags: 0

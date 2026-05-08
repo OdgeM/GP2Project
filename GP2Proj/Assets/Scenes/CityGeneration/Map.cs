@@ -50,7 +50,7 @@ public class RotatedRect
 
         Vertices.Add(rs.ra.startLocation + widthFactor);
         Vertices.Add(rs.ra.startLocation - widthFactor);
-        Vertices.Add(rs.ra.endLocation - widthFactor + Norm * Lookahead * rs.ra.distance);
+        Vertices.Add(rs.ra.endLocation - widthFactor + Lookahead * rs.ra.distance * Norm);
         Vertices.Add(rs.ra.endLocation + widthFactor + Norm * Lookahead * rs.ra.distance);
 
         Centre = new Vector2(Vertices.Select(n => n.x).Average(), Vertices.Select(n => n.y).Average());

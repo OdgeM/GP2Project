@@ -25,11 +25,22 @@ public class CityRenderer : MonoBehaviour
 
         foreach (var road in roads)
         {
-           
-            RotatedRect r = new(road,0);
 
 
-            AddQuad(r.Vertices, Color.black, ref vertices, ref tris, ref colors);
+            AddQuad(road.RotRect.Vertices, Color.white, ref vertices, ref tris, ref colors);
+
+            
+            if (road.next != null && !road.next.isFailed)
+            {
+                List<Vector2> v = new();
+                v.Add(road.RotRect.Vertices[3]);
+                v.Add(road.RotRect.Vertices[2]);
+
+                v.Add(road.next.RotRect.Vertices[1]);
+                v.Add(road.next.RotRect.Vertices[0]);
+
+                AddQuad(v, Color.red, ref vertices, ref tris, ref colors); 
+            }
 
            
         }
@@ -46,6 +57,25 @@ public class CityRenderer : MonoBehaviour
             RoadSegment inner = new(0, road.ra, qa);
             RotatedRect r = new(inner, 0);
             AddQuad(r.Vertices, c, ref vertices, ref tris, ref colors);
+            
+            
+            if (road.next != null)
+            {
+                RoadSegment other = new(0, road.next.ra, qa);
+                RotatedRect otherRect = new(other, 0);
+
+                List<Vector2> v = new();
+                v.Add(r.Vertices[3]);
+                v.Add(r.Vertices[2]);
+
+                v.Add(otherRect.Vertices[1]);
+                v.Add(otherRect.Vertices[0]);
+
+                AddQuad(v, c, ref vertices, ref tris, ref colors);
+            }
+
+
+
         }
 
         foreach (var road in roads.Where(n => n.qa.isMotorway))
@@ -53,11 +83,35 @@ public class CityRenderer : MonoBehaviour
             QueryAttribute qa = road.qa;
             qa.width *= 1-roadBorderWidth;
 
+            if (qa.width < 8f)
+            {
+                Debug.Log(qa.width);
+                Debug.Log("zero width?");
+            }
+
             Color c = Color.white;
 
             RoadSegment inner = new(0, road.ra, qa);
             RotatedRect r = new(inner, 0);
             AddQuad(r.Vertices, c, ref vertices, ref tris, ref colors);
+
+
+            if (road.next != null)
+            {
+                RoadSegment other = new(0, road.next.ra, qa);
+                RotatedRect otherRect = new(other, 0);
+
+                List<Vector2> v = new();
+                v.Add(r.Vertices[3]);
+                v.Add(r.Vertices[2]);
+
+                v.Add(otherRect.Vertices[1]);
+                v.Add(otherRect.Vertices[0]);
+
+                AddQuad(v, c, ref vertices, ref tris, ref colors);
+            }
+
+
         }*/
 
 
@@ -65,7 +119,7 @@ public class CityRenderer : MonoBehaviour
         {
             AddQuad(building.Vertices, Color.brown, ref vertices, ref tris, ref colors);
         }
-        Debug.Log(vertices.Count);
+
         mesh.SetVertices(vertices);
         mesh.SetTriangles(tris, 0);
         mesh.SetColors(colors);
@@ -91,7 +145,6 @@ public class CityRenderer : MonoBehaviour
 
         foreach (var vertex in v)
         {
-            Debug.Log("HERE");
             verts.Add(vertex);
         }
 
