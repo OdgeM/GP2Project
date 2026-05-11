@@ -29,9 +29,21 @@ public class LineupManager : MonoBehaviour
 
     public GameManager gameManager;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public void CreateHeroes()
     {
+        villainLineup.Clear();
+        heroLineup.Clear();
+
+        while (heroPanelContent.transform.childCount != 0)
+        {
+            Destroy(heroPanelContent.transform.GetChild(0).gameObject);
+        }
+
+        while (villainPanelContent.transform.childCount != 0)
+        {
+            Destroy(villainPanelContent.transform.GetChild(0).gameObject);
+        }
+
         //InitialiseLineup();
         InitialiseLineup();
     }
@@ -52,6 +64,7 @@ public class LineupManager : MonoBehaviour
 
     public Hero CreateHero()
     {
+        Debug.Log("HERE");
         CharacterPanel newPanel = Instantiate(characterPanelPrefab, heroPanelContent.transform).GetComponent<CharacterPanel>();
 
         Hero newHero = Instantiate(heroPrefab, newPanel.locationNode.transform).GetComponent<Hero>();   

@@ -9,11 +9,13 @@ public class Character : MonoBehaviour
     public int characterSeed = 1234567;
     public float alienChance = 0.1f;
     public bool isAlien = false;
-    
+
+    public bool isHero;
 
     [Header("Visuals")]
 
     public HeroSprite sprite;
+
 
     public float pantsChance = .5f;
     public float capeChance = .5f;

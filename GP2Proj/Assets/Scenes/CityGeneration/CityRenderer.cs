@@ -29,9 +29,15 @@ public class CityRenderer : MonoBehaviour
     Mesh mesh;
 
     List<Vector2> uv2 = new();
-
+    public void clear()
+    {
+       GetComponent<MeshFilter>().sharedMesh = null;
+        roads.Clear(); buildings.Clear();
+        uv2.Clear();
+    }
     public void Generate(float Time)
     {
+        
         float adjMaxShadow =
    Mathf.Lerp(.5f * maxShadowLength, maxShadowLength,
    1f - sunElevation);
@@ -68,7 +74,7 @@ public class CityRenderer : MonoBehaviour
 
 
         mesh = new Mesh();
-
+        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         List<Vector3> vertices = new();
         List<int> tris = new();
         List<Color> colours = new();
@@ -94,7 +100,7 @@ public class CityRenderer : MonoBehaviour
 
 
         }
-        buildings = buildings.OrderBy(n => n.height).ToList();
+       // buildings = buildings.OrderBy(n => n.height).ToList();
 
         
 
@@ -109,9 +115,9 @@ public class CityRenderer : MonoBehaviour
             shadowLength = Mathf.Min(shadowLength, adjMaxShadow);
 
             var shadow = building.rect.Vertices.Select(n => n + lightDir * shadowLength).ToList();
-            AddQuad(shadow, ShadowColour, ref vertices, ref tris, ref colours,0,Mathf.Clamp(.5f-GlowAmount/2, 0, .5f));
+           AddQuad(shadow, ShadowColour, ref vertices, ref tris, ref colours,0,Mathf.Clamp(.5f-GlowAmount/2, 0, .5f));
 
-            
+                
         }
         foreach (var building in buildings) {
             Vector2 depthOffset = depthDir * building.height;
@@ -142,8 +148,8 @@ public class CityRenderer : MonoBehaviour
                 }
 
             }
-            AddQuad(roof, BuildingColour, ref vertices, ref tris, ref colours);
-
+            AddQuad(roof, BuildingColour, ref vertices, ref tris, ref colours, building.height);
+            
         }
 
 
@@ -151,11 +157,14 @@ public class CityRenderer : MonoBehaviour
         mesh.SetVertices(vertices);
         mesh.SetTriangles(tris, 0);
         mesh.SetColors(colours);
-
+        mesh.SetUVs(1, uv2);
         mesh.RecalculateBounds();
+        mesh.RecalculateNormals();
 
         GetComponent<MeshFilter>().sharedMesh = mesh;
-        mesh.SetUVs(1, uv2);
+        
+
+       
     }
 
 

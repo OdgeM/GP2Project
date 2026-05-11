@@ -382,8 +382,8 @@
     },
     "m_FragmentContext": {
         "m_Position": {
-            "x": 362.66668701171877,
-            "y": 86.0000228881836
+            "x": 1018.6666259765625,
+            "y": -108.66664123535156
         },
         "m_Blocks": [
             {
@@ -2414,7 +2414,7 @@
     "m_AlphaMode": 0,
     "m_RenderFace": 0,
     "m_AlphaClip": false,
-    "m_CastShadows": false,
+    "m_CastShadows": true,
     "m_ReceiveShadows": true,
     "m_DisableTint": false,
     "m_Sort3DAs2DCompatible": false,

@@ -7,6 +7,7 @@ public class Hero : Character
 {
     public override void GenerateHeroName()
     {
+        isHero = true;
         if (isAlien)
         {
             heroName = realName;

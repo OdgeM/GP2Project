@@ -9,6 +9,7 @@ public class CharacterPanel : MonoBehaviour
     public GameObject locationNode;
     public TextMeshProUGUI characterName;
     public Character character;
+    public HeroSprite sprite;
 
     public RectTransform rectTransform;
     public Button button;
@@ -29,6 +30,8 @@ public class CharacterPanel : MonoBehaviour
     public void AssignCharacter(Character _character)
     {
         character = _character;
+       
+
 
         StartCoroutine(waitForCharacter());
 
@@ -80,8 +83,10 @@ public class CharacterPanel : MonoBehaviour
 
         characterName.text = character.heroName;
 
-        UpdateStats();
+        characterName.color = character.isHero ? Color.white : Color.red;
 
+        UpdateStats();
+        character.SetSprite(sprite);
         string fromText = string.Format(fromTemplate, character.hometown);
         from.text = fromText;
 

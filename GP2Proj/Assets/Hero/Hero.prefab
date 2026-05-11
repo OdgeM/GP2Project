@@ -121,6 +121,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8439763506866602917}
     m_Modifications:
+    - target: {fileID: 1178718984894711407, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 4
+      objectReference: {fileID: 0}
     - target: {fileID: 1814477248737354266, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -161,9 +165,69 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1976578401742725102, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2381327058926425998, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602063948937566245, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2830967428475590184, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3000765503699789591, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4297716023388176420, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5453120782786342520, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5475378953259140320, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5830265894352937841, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 5941253005052395764, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6277346999192998023, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312493637144000323, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 7773897806237562183, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
       propertyPath: m_Name
       value: HeroSprite
+      objectReference: {fileID: 0}
+    - target: {fileID: 8620853557164376793, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8712401875550223000, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8713113245617901867, guid: 0b159bc629b5b534db067e63df0bd1ac, type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

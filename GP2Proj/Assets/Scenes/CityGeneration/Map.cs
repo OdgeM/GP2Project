@@ -1,6 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 using Random = System.Random;
 
@@ -30,11 +33,18 @@ public class Building
     public RotatedRect rect;
     public float height = 1;
     public Vector2 centre;
+    public string BuildingName;
+    public bool activeIncident = false;
     public Building(RotatedRect r, float h, Vector2 c)
     {
         rect = r;
         height = h;
         centre = c;
+    }
+
+    public void Deactivate()
+    {
+        activeIncident = false;
     }
 }
 
@@ -53,7 +63,7 @@ public class RotatedRect
 
 
     }
-    
+
     private void FromSegment(CityGenerator.RoadSegment rs, float Lookahead = 0)
     {
         Vector2 Norm = (rs.ra.endLocation - rs.ra.startLocation).normalized;
@@ -228,43 +238,90 @@ public class RotatedRect
 public class Map : MonoBehaviour
 {
     public CityGenerator Generator;
-    public CityRenderer Renderer;
+    public CityRenderer cRenderer;
     public CustomRenderTexture WaterTexture;
     public Material WaterMaterial;
     public Material MapMaterial;
     public float Time = 9;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    async void Start()
+    public async Awaitable Generate(int segments, bool gridBased, bool coastal, bool river, int seed)
     {
-        WaterMaterial.SetInt("_Seed", 12345);
-        Random r = new(12345);
+
+        StopAllCoroutines();
+        Time = 9;
+        cRenderer.clear();
+        Random r = new(seed);
+        WaterMaterial.SetInt("_Seed", seed);
+        if (coastal || river)
+        {
+            WaterMaterial.SetInt("_Water", 1);
+
+            WaterMaterial.SetInt("_RiverCoast", coastal ? 1 : 0);
+        }
+        else
+        {
+            WaterMaterial.SetInt("_Water", 0);
+        }
+        WaterTexture.material = WaterMaterial;
+        WaterTexture.Update();
+        await Awaitable.NextFrameAsync();
+
+        Generator.WaterTexture = WaterTexture;
+        Generator.maxSegments = segments;
+
+        if (gridBased)
+        {
+            Generator.motorwayBranchAngleSD = 0;
+            Generator.branchAngleSD = 0;
+            Generator.maxMotorwayStraightAngle = 1;
+            Generator.straightAngleSD = 1;
+            Generator.motorwayBranchProbability = .5f;
+            Generator.defaultBranchProbability = 1f;
+            Generator.motorwaySegmentLength = 32;
+            Generator.defaultSegmentLength = 32;
+        }
+        else
+        {
+            Generator.motorwayBranchAngleSD = r.Next(10,30);
+            Generator.branchAngleSD = r.Next(10, 30);
+            Generator.maxMotorwayStraightAngle = r.Next(4, 6);
+            Generator.straightAngleSD = r.Next(7, 14);
+            Generator.motorwaySegmentLength = 12;
+            Generator.defaultSegmentLength = 12;
+            Generator.motorwayBranchProbability = .25f;
+            Generator.defaultBranchProbability = .8f;
+        }
+
+            
         await Generator.CreateCity(r);
         Debug.Log(Generator.segmentList.Count);
         foreach (var road in Generator.segmentList)
         {
-            Renderer.roads.Add(road);
+            cRenderer.roads.Add(road);
         }
 
         foreach (var b in Generator.buildings)
         {
-            Renderer.buildings.Add(b);
+            cRenderer.buildings.Add(b);
         }
 
-        Renderer.Generate(Time);
+        cRenderer.Generate(Time);
         StartCoroutine(Clock());
+
     }
 
 
     IEnumerator Clock()
     {
-        while(true){
+        while (true)
+        {
             yield return new WaitForSeconds(1);
             Time += .25f;
             if (Time == 24)
             {
                 Time = 0;
             }
-            Renderer.Generate(Time);
+            cRenderer.Generate(Time);
             float NightTime = 1;
 
             if (Time >= 20 || Time <= 5)
@@ -278,18 +335,25 @@ public class Map : MonoBehaviour
             }
             else if (Time <= 7)
             {
-                NightTime = Mathf.Lerp(.3f, 1, ((float)(Time - 5) / (7-5)));
+                NightTime = Mathf.Lerp(.3f, 1, ((float)(Time - 5) / (7 - 5)));
             }
 
-                Debug.Log(NightTime);
+            Debug.Log(NightTime);
 
             MapMaterial.SetFloat("_NightTime", NightTime);
         }
-        
     }
+
+
+    public Incident GenerateIncident(Villain villain)
+    {
+        return new Incident(Generator.buildings[0], villain);
+    }
+
+
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 }

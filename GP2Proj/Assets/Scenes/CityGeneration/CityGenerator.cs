@@ -126,17 +126,7 @@ public class CityGenerator : MonoBehaviour
     void Start()
     {
 
-        WaterMapTexture = new(width, height);
-        RenderTexture.active = WaterTexture;
-        WaterMapTexture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-        RenderTexture.active = null;
-        WaterMap = new(WaterMapTexture);
-
-        PopMapTexture = new(width, height);
-        RenderTexture.active = PopulationDensity;
-        PopMapTexture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-        RenderTexture.active = null;
-        PopMap = new(PopMapTexture);
+        
 
 
         Bounding = new();
@@ -190,6 +180,24 @@ public class CityGenerator : MonoBehaviour
     }
     public async Awaitable CreateCity(Random r)
     {
+        WaterMapTexture = new(width, height);
+        RenderTexture.active = WaterTexture;
+        WaterMapTexture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        RenderTexture.active = null;
+        WaterMap = new(WaterMapTexture);
+
+        PopMapTexture = new(width, height);
+        RenderTexture.active = PopulationDensity;
+        PopMapTexture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        RenderTexture.active = null;
+        PopMap = new(PopMapTexture);
+
+        buildings.Clear();
+        segmentList.Clear();
+        bridges.Clear();
+        Nodes.Clear();
+        Edges.Clear();
+        priorityQueue.Clear();
         random = r;
         await Awaitable.BackgroundThreadAsync();
         
@@ -386,7 +394,7 @@ public class CityGenerator : MonoBehaviour
      public  void Generate()
     {
         
-        while (priorityQueue.Count > 0 )
+        while (priorityQueue.Count > 0 && segmentList.Count < maxSegments)
         {
             Debug.Log("ROADS: " + segmentList.Count);
             priorityQueue = priorityQueue.OrderByDescending(o => o.t).ToList();
@@ -398,10 +406,7 @@ public class CityGenerator : MonoBehaviour
 
             if (state)
             {
-                if (segmentList.Count < maxSegments)
-                {
-                    GlobalGoals(segment);
-                }
+                GlobalGoals(segment);
                 
 
                 AddSegment(segment);
@@ -665,7 +670,7 @@ public class CityGenerator : MonoBehaviour
 
                 float angle;
                 // Maybe Branch Motorway
-                if (random.NextDouble() < motorwayBranchProbability || lastSegment.qa.isBridge)
+                if (random.NextDouble() < motorwayBranchProbability)
                 {
                     if (random.NextDouble() < .5f)
                     {
@@ -678,10 +683,7 @@ public class CityGenerator : MonoBehaviour
 
                     branches.Add(lastSegment.BranchRoad(angle, lastSegment.ra.distance, motorwaySegmentWidth, true));
 
-                    if (lastSegment.qa.isBridge)
-                    {
-                        branches.Add(lastSegment.BranchRoad(-angle, lastSegment.ra.distance, motorwaySegmentWidth, true));
-                    }
+
                 }
             }
             else if (random.NextDouble() < .75f)

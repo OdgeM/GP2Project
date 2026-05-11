@@ -4,6 +4,8 @@ public class Villain : Character
 {
     public override void GenerateHeroName()
     {
+        isHero = false;
+
         if (isAlien)
         {
             heroName = NameManager.GetAlienVillain(characterSeed, realName);
