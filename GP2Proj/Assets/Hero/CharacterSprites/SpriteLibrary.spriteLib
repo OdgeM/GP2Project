@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &1
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5e6fedc2472449cead18ef23b5cb30d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.2D.Animation.Runtime::UnityEngine.U2D.Animation.SpriteLibrarySourceAsset
+  m_Library:
+  - m_Name: Insignia
+    m_Hash: 1004532724
+    m_CategoryList: []
+    m_OverrideEntries:
+    - m_Name: ChestInsignia_0
+      m_Hash: 284159930
+      m_Sprite: {fileID: 910445577, guid: 1af7f5e0f5bcaa44b98256e17d95829e, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: 910445577, guid: 1af7f5e0f5bcaa44b98256e17d95829e, type: 3}
+    - m_Name: ChestInsignia_1
+      m_Hash: 669572908
+      m_Sprite: {fileID: 537585421, guid: 1af7f5e0f5bcaa44b98256e17d95829e, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: 537585421, guid: 1af7f5e0f5bcaa44b98256e17d95829e, type: 3}
+    - m_Name: ChestInsignia_2
+      m_Hash: 1054969494
+      m_Sprite: {fileID: -677693864, guid: 1af7f5e0f5bcaa44b98256e17d95829e, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: -677693864, guid: 1af7f5e0f5bcaa44b98256e17d95829e, type: 3}
+    - m_Name: ChestInsignia_3
+      m_Hash: 166116864
+      m_Sprite: {fileID: 1874321627, guid: 1af7f5e0f5bcaa44b98256e17d95829e, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: 1874321627, guid: 1af7f5e0f5bcaa44b98256e17d95829e, type: 3}
+    m_FromMain: 0
+    m_EntryOverrideCount: 4
+  - m_Name: Hair
+    m_Hash: 1019596327
+    m_CategoryList: []
+    m_OverrideEntries:
+    - m_Name: Hair_0
+      m_Hash: 1010434783
+      m_Sprite: {fileID: 43724904, guid: 6d63f5c6be4d76049bfed6ef0e3593d7, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: 43724904, guid: 6d63f5c6be4d76049bfed6ef0e3593d7, type: 3}
+    - m_Name: Hair_1
+      m_Hash: 188559945
+      m_Sprite: {fileID: -1262253881, guid: 6d63f5c6be4d76049bfed6ef0e3593d7, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: -1262253881, guid: 6d63f5c6be4d76049bfed6ef0e3593d7, type: 3}
+    - m_Name: Hair_2
+      m_Hash: 305423347
+      m_Sprite: {fileID: -14899590, guid: 6d63f5c6be4d76049bfed6ef0e3593d7, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: -14899590, guid: 6d63f5c6be4d76049bfed6ef0e3593d7, type: 3}
+    - m_Name: Hair_3
+      m_Hash: 624120677
+      m_Sprite: {fileID: -15805107, guid: 6d63f5c6be4d76049bfed6ef0e3593d7, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: -15805107, guid: 6d63f5c6be4d76049bfed6ef0e3593d7, type: 3}
+    m_FromMain: 0
+    m_EntryOverrideCount: 4
+  - m_Name: Headwear
+    m_Hash: 332903193
+    m_CategoryList: []
+    m_OverrideEntries:
+    - m_Name: Headwear_0
+      m_Hash: 323730225
+      m_Sprite: {fileID: -1260712420, guid: 440b6da367d3baf4190061f4883e1757, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: -1260712420, guid: 440b6da367d3baf4190061f4883e1757, type: 3}
+    - m_Name: Headwear_1
+      m_Hash: 608996263
+      m_Sprite: {fileID: -629572627, guid: 440b6da367d3baf4190061f4883e1757, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: -629572627, guid: 440b6da367d3baf4190061f4883e1757, type: 3}
+    - m_Name: Headwear_2
+      m_Hash: 1027987997
+      m_Sprite: {fileID: 1434769447, guid: 440b6da367d3baf4190061f4883e1757, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: 1434769447, guid: 440b6da367d3baf4190061f4883e1757, type: 3}
+    - m_Name: Headwear_3
+      m_Hash: 172157579
+      m_Sprite: {fileID: 1727012088, guid: 440b6da367d3baf4190061f4883e1757, type: 3}
+      m_FromMain: 0
+      m_SpriteOverride: {fileID: 1727012088, guid: 440b6da367d3baf4190061f4883e1757, type: 3}
+    m_FromMain: 0
+    m_EntryOverrideCount: 4
+  m_PrimaryLibraryGUID: 
+  m_ModificationHash: 639053996313823595
+  m_Version: 1

@@ -1,0 +1,21 @@
+ the Destroyer
+ the Ruinous
+ the Devourer
+ the Ravager
+ the Scourge
+ the Blighted
+ the Marauder
+ the Reaver
+ the Pillager
+ the Tyrant
+ the Conqueror
+ the Defiler
+, High Overlord
+ the Fiend
+ the Shadow
+ the Tormentor
+ the Harbinger
+ the Brute
+ the Vandal
+ the Eradicator
+, Devourer of Worlds

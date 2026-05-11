@@ -1,6 +1,8 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Random = System.Random;
 
 public class Node
 {
@@ -23,10 +25,23 @@ public class Edge
     public Node Other(Node n) => n == a ? b : a;
 };
 
-
+public class Building
+{
+    public RotatedRect rect;
+    public float height = 1;
+    public Vector2 centre;
+    public Building(RotatedRect r, float h, Vector2 c)
+    {
+        rect = r;
+        height = h;
+        centre = c;
+    }
+}
 
 public class RotatedRect
 {
+
+
     public List<Vector2> Vertices;
     public List<Vector2> Edges;
     public List<Vector2> Normals;
@@ -168,7 +183,7 @@ public class RotatedRect
             Vector2 projection1 = this.Project(axis);
             Vector2 projection2 = Other.Project(axis);
 
-            bool overlap = (projection1.y - projection1.x + projection2.y - projection2.x) > (Mathf.Max(projection2.y, projection1.y) - Mathf.Min(projection2.x, projection1.y));
+            bool overlap = (projection1.y - projection1.x + projection2.y - projection2.x) > (Mathf.Max(projection2.y, projection1.y) - Mathf.Min(projection2.x, projection1.x));
 
             if (!overlap) return false;
         }
@@ -178,7 +193,9 @@ public class RotatedRect
             Vector2 projection1 = this.Project(axis);
             Vector2 projection2 = Other.Project(axis);
 
-            bool overlap = ((projection1.y - projection1.x) + (projection2.y - projection2.x)) > (Mathf.Max(projection2.y, projection1.y) - Mathf.Min(projection2.x, projection1.y));
+            bool overlap =
+     projection1.x <= projection2.y &&
+     projection1.y >= projection2.x;
 
             if (!overlap) return false;
         }
@@ -212,15 +229,20 @@ public class Map : MonoBehaviour
 {
     public CityGenerator Generator;
     public CityRenderer Renderer;
-
+    public CustomRenderTexture WaterTexture;
+    public Material WaterMaterial;
+    public Material MapMaterial;
+    public float Time = 9;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    async void Start()
     {
-        Generator.CreateCity();
+        WaterMaterial.SetInt("_Seed", 12345);
+        Random r = new(12345);
+        await Generator.CreateCity(r);
         Debug.Log(Generator.segmentList.Count);
-        foreach (var r in Generator.segmentList)
+        foreach (var road in Generator.segmentList)
         {
-            Renderer.roads.Add(r);
+            Renderer.roads.Add(road);
         }
 
         foreach (var b in Generator.buildings)
@@ -228,9 +250,43 @@ public class Map : MonoBehaviour
             Renderer.buildings.Add(b);
         }
 
-        Renderer.Generate();
+        Renderer.Generate(Time);
+        StartCoroutine(Clock());
     }
 
+
+    IEnumerator Clock()
+    {
+        while(true){
+            yield return new WaitForSeconds(1);
+            Time += .25f;
+            if (Time == 24)
+            {
+                Time = 0;
+            }
+            Renderer.Generate(Time);
+            float NightTime = 1;
+
+            if (Time >= 20 || Time <= 5)
+            {
+                NightTime = 0.3f;
+            }
+
+            else if (Time >= 18)
+            {
+                NightTime = Mathf.Lerp(.3f, 1, ((float)(20 - Time) / (20 - 18)));
+            }
+            else if (Time <= 7)
+            {
+                NightTime = Mathf.Lerp(.3f, 1, ((float)(Time - 5) / (7-5)));
+            }
+
+                Debug.Log(NightTime);
+
+            MapMaterial.SetFloat("_NightTime", NightTime);
+        }
+        
+    }
     // Update is called once per frame
     void Update()
     {

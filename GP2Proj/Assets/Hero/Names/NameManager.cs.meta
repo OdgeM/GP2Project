@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: d0b1471cb23f5a5498caccaf2205e5f0
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - firstNameAsset: {fileID: 4900000, guid: 1436fc3fa6b91734ba1899c50fae56d6, type: 3}
+  - lastNameAsset: {fileID: 4900000, guid: a30e6832c6e6fd14786190741a44285b, type: 3}
+  - alienVillainSuffixAsset: {fileID: 4900000, guid: 4bc2478aa736782499c8900143a67a8e, type: 3}
+  - genericPrefixAsset: {fileID: 4900000, guid: 5ce3967b552e1504ebd332e9963cdd0c, type: 3}
+  - genericSuffixAsset: {fileID: 4900000, guid: e7128ba562e9b3448a3d7a64734f2944, type: 3}
+  - villainPrefixAsset: {fileID: 4900000, guid: cf0692934bfbf64449b3d8f1b7303db4, type: 3}
+  - villainSuffixAsset: {fileID: 4900000, guid: d45bbcf96956ab644b070467b2e89cbe, type: 3}
+  - heroPrefixAsset: {fileID: 4900000, guid: 91aae86c9421ea2448ab12d348793e57, type: 3}
+  - heroSuffixAsset: {fileID: 4900000, guid: 1d243471104d2f941adb21b1254b9ae6, type: 3}
+  - cityAsset: {fileID: 4900000, guid: 674d3e3975b08f94b9d9a17a8582593f, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

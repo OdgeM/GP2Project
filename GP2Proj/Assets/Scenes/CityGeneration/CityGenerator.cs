@@ -1,17 +1,26 @@
 using JetBrains.Annotations;
+using NUnit.Framework.Internal;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.UIElements;
-using Random = UnityEngine.Random;
+using Random = System.Random;
 
 
 public class CityGenerator : MonoBehaviour
 {
-    public Texture WaterMap;
+    public CustomRenderTexture WaterTexture;
+    public CustomRenderTexture PopulationDensity;
+    private Texture2D WaterMapTexture;
+    private Texture2D PopMapTexture;
+    private HeatMap WaterMap;
+    private HeatMap PopMap;
 
     public float defaultSegmentLength = 300;
     public float motorwaySegmentLength = 120;
@@ -23,11 +32,19 @@ public class CityGenerator : MonoBehaviour
     public float motorwayBranchAngleSD = 1;
     public float straightAngleMean = 3;
     public float straightAngleSD = 15;
-    public float motorwayStraightAngleMean = 3;
-    public float motorwayStraightAngleSD = 15;
+    public float maxMotorwayStraightAngle = 20;
     public int motorwayBranchDelay = 15;
 
+    public float minLotWidth = 7.5f;
+    public float maxLotWidth = 15f;
+
+    public float minLotDepth = 5;
+    public float maxLotDepth = 10;
+
     public float IntersectionThreshold = 5;
+    public float maxPrune = .5f;
+    public float maxRotateAngle = 45;
+    public float maxBridgeExtension = 3f;
 
     public float rectMultiplier = .25f;
 
@@ -37,15 +54,19 @@ public class CityGenerator : MonoBehaviour
     public float motorwayBranchProbability = .05f;
     public int maxSegments = 2000;
 
+    public int border = 150;
+
     public int seed = 12345;
 
     public List<RoadSegment> priorityQueue = new();
     public List<RoadSegment> segmentList = new();
 
-    public List<RotatedRect> buildings = new();
+    public List<Building> buildings = new();
 
     public List<Node> Nodes = new();
     public List<Edge> Edges = new();
+
+    public List<RoadSegment> bridges = new();
 
     public float mergeThreshold = 0.1f;
     public float minLotArea = 10f;
@@ -54,29 +75,71 @@ public class CityGenerator : MonoBehaviour
     public int height = 1080;
     private List<RoadSegment> Bounding;
 
+    int mainThreadId;
 
+    public static Random random;
+
+    public class HeatMap
+    {
+        Color[] pixels;
+        Vector2Int size;
+        public HeatMap(Texture2D texture)
+        {
+            pixels = texture.GetPixels();
+            size = new(texture.width, texture.height);
+        }
+
+        public Color GetPixel(int x, int y)
+        {
+            if (x >= size.x || y >= size.y || x < 0 || y < 0)
+            {
+                return Color.white;
+            }
+            int index = (y * size.x) + x;
+            return pixels[index];
+        }
+
+        public Color GetPixel(Vector2 position)
+        {
+            Vector2 mapPosition = position + size / 2;
+            Vector2Int ceil = Vector2Int.CeilToInt(mapPosition);
+            Vector2Int floor = Vector2Int.FloorToInt(mapPosition);
+
+            if (GetPixel(ceil.x, ceil.y) == Color.white ||
+            GetPixel(floor.x, floor.y) == Color.white ||
+            GetPixel(floor.x, ceil.y) == Color.white ||
+            GetPixel(ceil.x, floor.y) == Color.white)
+            {
+                return Color.white;
+            }
+            else
+            {
+                return GetPixel(floor.x, floor.y);
+            }
+        }
+    }
+
+    private void Awake()
+    {
+        mainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+    }
     void Start()
     {
-       
 
+        WaterMapTexture = new(width, height);
+        RenderTexture.active = WaterTexture;
+        WaterMapTexture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        RenderTexture.active = null;
+        WaterMap = new(WaterMapTexture);
 
-        /*
-        RoadSegment segment = new RoadSegment
-           (
-               0,
-               new RoadAttribute(new Vector2(0, 0), motorwaySegmentLength, 0),
-               new QueryAttribute(true, motorwaySegmentWidth)
-           );
-        priorityQueue.Add(segment);*/
+        PopMapTexture = new(width, height);
+        RenderTexture.active = PopulationDensity;
+        PopMapTexture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        RenderTexture.active = null;
+        PopMap = new(PopMapTexture);
 
-
-    }
-    public void CreateCity()
-    {
-        Random.InitState(seed);
 
         Bounding = new();
-
         RoadSegment boundingSegment = new
             (
                 0,
@@ -114,6 +177,23 @@ public class CityGenerator : MonoBehaviour
 
         Bounding.Add(boundingSegment);
 
+        /*
+        RoadSegment segment = new RoadSegment
+           (
+               0,
+               new RoadAttribute(new Vector2(0, 0), motorwaySegmentLength, 0),
+               new QueryAttribute(true, motorwaySegmentWidth)
+           );
+        priorityQueue.Add(segment);*/
+
+
+    }
+    public async Awaitable CreateCity(Random r)
+    {
+        random = r;
+        await Awaitable.BackgroundThreadAsync();
+        
+        
 
 
         foreach (var b in Bounding)
@@ -131,6 +211,7 @@ public class CityGenerator : MonoBehaviour
             );
         priorityQueue.Add(segment);
 
+        
         segment = new RoadSegment
             (
                 0,
@@ -167,119 +248,48 @@ public class CityGenerator : MonoBehaviour
 
         var blocks = ExtractFaces();
         blocks = RemoveOuterFace(blocks);
-
-        foreach (var block in blocks)
+        int start = blocks.Count();
+        foreach (var road in segmentList)
         {
-            List<RotatedRect> lots = new();
-            Vector2 Origin = new();
-            var Rastered = RasterisePolygon(block, 5, out Origin);
+            List<Building> lots = new();
+            //var Rastered = RasterisePolygon(block, minLotWidth/1.5f, out Origin);
 
-            foreach (var c in Rastered)
-            {
-                lots = GenerateLot(block, c, 1, 4, 7.5f, 2, 5, lots);
-                
+            if (random.NextDouble() < PopMap.GetPixel(road.ra.startLocation).maxColorComponent + .25f){
+                buildings = GenerateLot(road, 10, minLotWidth, maxLotWidth, minLotDepth, maxLotDepth, buildings);
             }
-            buildings.AddRange(lots);
-        }
-    }
-    public bool PointInPolygon(Vector2 p, List<Vector2> poly)
-    {
-        bool inside = false;
 
-        for (int i = 0, j = poly.Count - 1; i < poly.Count; j = i++)
-        {
-            Vector2 pi = poly[i];
-            Vector2 pj = poly[j];
+            
 
-            if (((pi.y > p.y) != (pj.y > p.y)) &&
-                (p.x < (pj.x - pi.x) * (p.y - pi.y) / (pj.y - pi.y + 0.00001f) + pi.x))
-            {
-                inside = !inside;
-            }
+            
+            
+            Debug.Log(start--);
         }
 
-        return inside;
+        await Awaitable.MainThreadAsync();
+        return;
+
     }
 
-    List<Vector2> RasterisePolygon(List<Vector2> poly, float cellSize, out Vector2 origin)
-    {
-        // Find bounding box
-        float minX = poly.Min(p => p.x);
-        float maxX = poly.Max(p => p.x);
-        float minY = poly.Min(p => p.y);
-        float maxY = poly.Max(p => p.y);
-
-        origin = new Vector2(minX, minY);
-
-        int width = Mathf.CeilToInt((maxX - minX) / cellSize);
-        int height = Mathf.CeilToInt((maxY - minY) / cellSize);
-
-        List<Vector2> CellCentres = new();
-
-        Vector2 Centre = new Vector2(poly.Select(n => n.x).Average(), poly.Select(n => n.y).Average());
-
-        bool[,] grid = new bool[width, height];
-
-        float s = cellSize * .5f;
-
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                // Cell center
-                Vector2 worldPos = origin + new Vector2(
-                    (x + 0.5f) * cellSize,
-                    (y + 0.5f) * cellSize
-                );
 
 
 
-                Vector2 a = worldPos + new Vector2(-s, -s);
-                Vector2 b = worldPos + new Vector2(s, -s);
-                Vector2 c = worldPos + new Vector2(s, s);
-                Vector2 d = worldPos + new Vector2(-s, s);
 
-                List<Vector2> list = new List<Vector2>() { a, b, c, d };
-                RotatedRect rotatedRect = new(list);
-
-                float distanceFromRoad = Nodes.Select(n => Vector2.Distance(n.Position, worldPos)).Min();
-
-                if (PointInPolygon(worldPos, poly) && segmentList.Count(n => n.RotRect.Collides(rotatedRect)) == 0 && distanceFromRoad < 8)
-                {
-                    CellCentres.Add(worldPos);
-                }
-                ;
-            }
-        }
-        return CellCentres;
-    }
-
-    List<RotatedRect> GenerateLot(
-    List<Vector2> poly,
-    Vector2 position,
+    List<Building> GenerateLot(
+        RoadSegment road,
     int attempts,
     float minWidth,
     float maxWidth,
     float minDepth,
     float maxDepth,
-    List<RotatedRect> lots)
+    List<Building> lots)
     {
+
         for (int i = 0; i < attempts; i++)
         {
 
 
-            List<float> edges = poly.Select((n, index) =>
-            {
-                Vector2 a = n;
-                Vector2 b = poly[(index + 1) % poly.Count];
-                return Vector2.Distance((a + b) / 2, position);
-            }
-            ).ToList();
-
-            int edgeIndex = edges.FindIndex(n => n == edges.Min());
-
-            Vector2 a = poly[edgeIndex];
-            Vector2 b = poly[(edgeIndex + 1) % poly.Count];
+            Vector2 a = road.ra.startLocation;
+            Vector2 b = road.ra.endLocation;
 
             Vector2 edgeDir = (b - a).normalized;
             Vector2 normal = new Vector2(-edgeDir.y, edgeDir.x);
@@ -288,23 +298,37 @@ public class CityGenerator : MonoBehaviour
             if (edgeLength < minWidth) continue;
 
 
-            float t = UnityEngine.Random.Range(0f, 1f);
+            float t = (float)random.NextDouble();
             Vector2 edgePoint = Vector2.Lerp(a, b, t);
 
 
-            float width = UnityEngine.Random.Range(minWidth, Mathf.Min(maxWidth, edgeLength));
-            float depth = UnityEngine.Random.Range(minDepth, maxDepth);
+            float m = Mathf.Min(maxWidth, edgeLength);
+            float rectwidth = minWidth + (float)random.NextDouble() * (m-minWidth);
+    
+            float depth = minDepth + (float)random.NextDouble() *(maxDepth - minDepth);
 
-            Vector2 center = position;
+            float multiplier = (float)random.NextDouble()<.5? 1:-1;
+
+            Vector2 centre = edgePoint + normal*8*multiplier;
+
+            if (centre.x + width/2 >= width - border)
+            {
+                continue;
+            }
+            if (centre.x + width/2 <= border)
+            {
+                continue;
+            }
 
             float angle = Mathf.Atan2(edgeDir.y, edgeDir.x) * Mathf.Rad2Deg;
 
-            RotatedRect rect = new RotatedRect(center, new Vector2(width, depth), angle);
+            RotatedRect rect = new RotatedRect(centre, new Vector2(rectwidth, depth), angle);
 
             bool inside = true;
             foreach (var corner in rect.Vertices)
             {
-                if (!PointInPolygon(corner, poly))
+                if (WaterMap.GetPixel(corner) == Color.white)
+
                 {
                     inside = false;
                     break;
@@ -314,9 +338,9 @@ public class CityGenerator : MonoBehaviour
             if (!inside) continue;
 
             bool overlaps = false;
-            foreach (var other in lots)
+            foreach (var other in buildings)
             {
-                if (rect.Collides(other))
+                if (rect.Collides(other.rect))
                 {
                     overlaps = true;
                     break;
@@ -332,10 +356,13 @@ public class CityGenerator : MonoBehaviour
                     break;
                 }
             }
-            if (overlaps) continue; 
+            if (overlaps) continue;
 
 
-            lots.Add(rect);
+            float population = PopMap.GetPixel(centre).maxColorComponent;
+            float height = .5f + (float)random.NextDouble()* population;
+
+            lots.Add(new Building(rect, height, centre));
         }
 
         return lots;
@@ -356,10 +383,12 @@ public class CityGenerator : MonoBehaviour
 
 
 
-    public void Generate()
+     public  void Generate()
     {
-        while (priorityQueue.Count > 0 && segmentList.Count < maxSegments)
+        
+        while (priorityQueue.Count > 0 )
         {
+            Debug.Log("ROADS: " + segmentList.Count);
             priorityQueue = priorityQueue.OrderByDescending(o => o.t).ToList();
             RoadSegment segment = priorityQueue.Last();
             priorityQueue.RemoveAt(priorityQueue.Count - 1);
@@ -369,7 +398,11 @@ public class CityGenerator : MonoBehaviour
 
             if (state)
             {
-                GlobalGoals(segment);
+                if (segmentList.Count < maxSegments)
+                {
+                    GlobalGoals(segment);
+                }
+                
 
                 AddSegment(segment);
             }
@@ -378,12 +411,10 @@ public class CityGenerator : MonoBehaviour
                 segment.isFailed = true;
             }
 
-
-
-
         }
 
-        
+
+
 
 
     }
@@ -395,6 +426,10 @@ public class CityGenerator : MonoBehaviour
 
         segmentList.Add(segment);
 
+        if (segment.qa.isBridge)
+        {
+            bridges.Add(segment);
+        }
 
         Node NodeStart = GetOrCreateNode(segment.ra.startLocation);
         Node NodeEnd = GetOrCreateNode(segment.ra.endLocation);
@@ -405,6 +440,8 @@ public class CityGenerator : MonoBehaviour
 
         NodeStart.Edges.Add(e);
         NodeEnd.Edges.Add(e);
+
+
 
         segment.edge = e;
 
@@ -493,7 +530,7 @@ public class CityGenerator : MonoBehaviour
                 List<Vector2> face = new List<Vector2>();
                 HalfEdge current = he;
                 int test = 0;
-                while (test++ < Edges.Count-2)
+                while (test++ < Edges.Count - 2)
                 {
                     visited.Add(current);
                     face.Add(current.start.Position);
@@ -510,10 +547,7 @@ public class CityGenerator : MonoBehaviour
                     }
                 }
 
-                if (test == Edges.Count - 2)
-                {
-                    Debug.Log("HERE");
-                }
+  
 
                 if (face.Count > 2)
                     faces.Add(face);
@@ -589,8 +623,8 @@ public class CityGenerator : MonoBehaviour
 
         do
         {
-            u = 2.0f * Random.value - 1.0f;
-            v = 2.0f * Random.value - 1.0f;
+            u = 2.0f * (float)random.NextDouble() - 1.0f;
+            v = 2.0f * (float)random.NextDouble() - 1.0f;
             S = u * u + v * v;
         }
         while (S >= 1.0f);
@@ -605,13 +639,16 @@ public class CityGenerator : MonoBehaviour
 
         float value = Mathf.Clamp(std * s + mean, minValue, maxValue);
 
-        if (Random.value > 0.5)
+        if (random.NextDouble() > 0.5)
         {
             value = 360 - value;
         }
 
         return value;
     }
+
+    
+
     public void GlobalGoals(RoadSegment lastSegment)
     {
         List<RoadSegment> branches = new List<RoadSegment>();
@@ -620,27 +657,17 @@ public class CityGenerator : MonoBehaviour
         {
             if (lastSegment.qa.isMotorway)
             {
-                // Continue Motorway
-                float angle = 0;
-
-                if (Random.value < 0.3f)
+                branches.Add(lastSegment.HighestPopulation(maxMotorwayStraightAngle, WaterMap, PopMap, width, height));
+                if (lastSegment.qa.isBridge)
                 {
-                    if (Random.value < 0.5f)
-                    {
-                        angle = RandomAngle(motorwayStraightAngleMean, motorwayStraightAngleSD);
-                    }
-                    else
-                    {
-                        angle = -1 * RandomAngle(motorwayStraightAngleMean, motorwayStraightAngleSD);
-                    }
+                    branches[0].t -= 2;
                 }
 
-                branches.Add(lastSegment.ContinueRoad(angle));
-
+                float angle;
                 // Maybe Branch Motorway
-                if (Random.value < motorwayBranchProbability)
+                if (random.NextDouble() < motorwayBranchProbability || lastSegment.qa.isBridge)
                 {
-                    if (Random.value < .5f)
+                    if (random.NextDouble() < .5f)
                     {
                         angle = RandomAngle(motorwayBranchAngleMean, motorwayBranchAngleSD);
                     }
@@ -650,20 +677,22 @@ public class CityGenerator : MonoBehaviour
                     }
 
                     branches.Add(lastSegment.BranchRoad(angle, lastSegment.ra.distance, motorwaySegmentWidth, true));
+
+                    if (lastSegment.qa.isBridge)
+                    {
+                        branches.Add(lastSegment.BranchRoad(-angle, lastSegment.ra.distance, motorwaySegmentWidth, true));
+                    }
                 }
             }
-            else if (Random.value < .75f)
+            else if (random.NextDouble() < .75f)
             {
-                float angle = RandomAngle(straightAngleMean, straightAngleSD);
-                if (Random.value < .5f)
-                    angle *= -1;
-                branches.Add(lastSegment.ContinueRoad(angle));
+                branches.Add(lastSegment.HighestPopulation(straightAngleSD, WaterMap, PopMap, width, height));
             }
 
-            if (Random.value < defaultBranchProbability)
+            if (random.NextDouble() < defaultBranchProbability)
             {
                 float angle = RandomAngle(branchAngleMean, branchAngleSD);
-                if (Random.value < 0.5)
+                if (random.NextDouble() < 0.5)
                 {
                     angle *= -1;
                 }
@@ -690,24 +719,52 @@ public class CityGenerator : MonoBehaviour
 
     public bool LocalConstraints(RoadSegment segment)
     {
+        Vector2 StartMap = segment.ra.startLocation + new Vector2(width, height) / 2;
+        Vector2Int StartFloor = Vector2Int.FloorToInt(StartMap);
+        Vector2Int StartCeil = Vector2Int.CeilToInt(StartMap);
+        if (WaterMap.GetPixel(segment.ra.startLocation) == Color.white) 
+        {
+            return false;
+        }
+
         if (Mathf.Abs(segment.ra.endLocation.x) > width / 2 || Mathf.Abs(segment.ra.endLocation.y) > height / 2)
         {
             foreach (var b in Bounding)
             {
-              Vector2? intersection = Intersect(b, segment);
-              if (intersection.HasValue)
+                Vector2? intersection = Intersect(b, segment);
+                if (intersection.HasValue)
                 {
                     if (intersection.Value == segment.ra.startLocation)
                     {
                         return false;
                     }
-                    segment.ra.endLocation = intersection.Value;
+                    segment.ChangeEnd(intersection.Value);
                     segment.RotRect = new(segment);
                     segment.qa.isSevered = true;
                     break;
                 }
             }
 
+        }
+
+        // Debug.Log(")_)_)_)_");
+        Vector2 MapEnd = Vector2Int.FloorToInt(segment.ra.endLocation) + new Vector2Int(width, height) / 2;
+        Vector2Int EndFloor = Vector2Int.FloorToInt(MapEnd);
+        Vector2Int EndCeil = Vector2Int.CeilToInt(MapEnd);
+
+
+
+        if (WaterMap.GetPixel(segment.ra.endLocation) == Color.white)
+
+        {
+
+            if (!FitSegment(ref segment))
+            {
+                return false;
+            }
+
+
+            Debug.Log(WaterMap.GetPixel(segment.ra.endLocation));
         }
 
 
@@ -717,17 +774,11 @@ public class CityGenerator : MonoBehaviour
             var node = Nodes.Where(n => Vector2.Distance(n.Position, segment.ra.startLocation) > 1);
             node = node.OrderBy(n => Vector2.Distance(n.Position, segment.ra.endLocation));
 
-            if (segment.ra.startLocation == new Vector2(-480, (float)-4.196293e-05))
-            {
-                Debug.Log(node.First().Position);
-                Debug.Log(node.First().Position);
-                Debug.Log(Vector2.Distance(node.First().Position, segment.ra.startLocation));
-                Debug.Log(Vector2.Distance(node.First().Position, segment.ra.endLocation));
-            }
+
 
             if (Vector2.Distance(node.First().Position, segment.ra.endLocation) < IntersectionThreshold)
             {
-                segment.ra.endLocation = node.First().Position;
+                segment.ChangeEnd( node.First().Position);
             }
 
             segment.RotRect = new(segment);
@@ -745,12 +796,11 @@ public class CityGenerator : MonoBehaviour
         {
             if (s != segment && s != segment.parent && s.parent != segment)
             {
-    
+
 
                 Vector2? intersection = Intersect(segment, s);
                 if (intersection.HasValue && Vector2.Distance(intersection.Value, segment.ra.startLocation) > 1f)
                 {
-
 
                     float length = Vector2.Distance(intersection.Value, segment.ra.startLocation);
                     if (closestIntersection == null || Vector2.Distance(closestIntersection.Value, segment.ra.startLocation) > length)
@@ -770,14 +820,7 @@ public class CityGenerator : MonoBehaviour
                 var node = Nodes.Where(n => Vector2.Distance(n.Position, segment.ra.startLocation) > 1);
                 node = node.OrderBy(n => Vector2.Distance(n.Position, closestIntersection.Value));
 
-                if (segment.ra.startLocation == new Vector2(-480, (float)-4.196293e-05))
-                {
-                    Debug.Log(node.First().Position);
-                    Debug.Log(node.First().Position);
-                    Debug.Log(Vector2.Distance(node.First().Position, segment.ra.startLocation));
-                    Debug.Log(Vector2.Distance(node.First().Position, segment.ra.endLocation));
-                }
-
+       
                 if (Vector2.Distance(node.First().Position, closestIntersection.Value) < IntersectionThreshold)
                 {
                     closestIntersection = node.First().Position;
@@ -793,10 +836,10 @@ public class CityGenerator : MonoBehaviour
             {
                 return false;
             }*/
-            segment.ra.endLocation = closestIntersection.Value;
+            segment.ChangeEnd(closestIntersection.Value);
 
             segment.qa.isSevered = true;
-            segment.ra.distance = Vector2.Distance(closestIntersection.Value, segment.ra.startLocation);
+            //segment.ra.distance = Vector2.Distance(closestIntersection.Value, segment.ra.startLocation);
             segment.RotRect = new(segment);
 
 
@@ -810,7 +853,6 @@ public class CityGenerator : MonoBehaviour
             var other = segmentList.Where(n => n.ra.startLocation == segment.ra.startLocation && n.ra.endLocation == segment.ra.endLocation).First();
             if (segment.qa.isMotorway && !other.qa.isMotorway)
             {
-                Debug.Log("HERE?");
                 other.SetMotorway(true, motorwaySegmentWidth);
             }
 
@@ -830,9 +872,7 @@ public class CityGenerator : MonoBehaviour
             float angle = Mathf.Acos(Vector2.Dot(otherLine, thisLine) / (otherLine.magnitude * thisLine.magnitude));
             if (angle < .1 || Mathf.Abs((Mathf.PI - angle)) < .1)
             {
-                Debug.Log("=-=-=-=-=-=");
-                Debug.Log(segment.ra.startLocation);
-                Debug.Log(segment.ra.endLocation);
+                
                 float directionComp = Vector2.Distance(thisLine.normalized, otherLine.normalized); ;
                 if (p.ra.startLocation == segment.ra.startLocation)
                 {
@@ -861,6 +901,221 @@ public class CityGenerator : MonoBehaviour
 
 
         return true;
+    }
+
+    public bool FitSegment(ref RoadSegment segment)
+    {
+
+        if (segment.qa.isMotorway)
+        {
+            if (BridgeSegment(ref segment))
+            {
+                Debug.Log("Bridge");
+                return true;
+            }
+        }
+
+
+        // Try to Rotate
+        if (RotateSegment(ref segment))
+        {
+            Debug.Log("Rotate");
+            return true;
+        }
+
+
+        // Try to prune
+        if (PruneSegment(ref segment))
+        {
+            Debug.Log("Prune");
+            return true;
+        }
+
+     
+
+        return false;
+    }
+
+    public  bool BridgeSegment(ref RoadSegment segment)
+    {
+
+
+
+        float distance = segment.ra.distance;
+        float angle = segment.ra.angle;
+        bool done = false;
+        bool bridged = false;
+
+        float bridgeAmount = 1;
+        while (!done)
+        {
+            bridgeAmount += .1f;
+            float newDistance = bridgeAmount * distance;
+
+            Vector2 newEndLocation = segment.ra.startLocation + new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad)) * newDistance;
+            Vector2Int newEndLocationCeil = Vector2Int.CeilToInt(newEndLocation) + new Vector2Int(width, height) / 2;
+            Vector2Int newEndLocationFloor = Vector2Int.FloorToInt(newEndLocation) + new Vector2Int(width, height) / 2;
+            if (WaterMap.GetPixel(newEndLocation) != Color.white)
+            {
+
+                bridged = true;
+                done = true;
+            }
+            else if (bridgeAmount >= maxBridgeExtension)
+            {
+                done = true;
+            }
+        }
+        if (bridged)
+        {
+            if (bridges.Count() > 0)
+            {
+                Vector2 endLocation = segment.ra.endLocation;
+                var bridgeDistances = bridges.Select(n => Mathf.Min(Vector2.Distance(endLocation, n.ra.startLocation), Vector2.Distance(endLocation, n.ra.endLocation)));
+                var closestBridge = bridges.Where(n => Mathf.Min(Vector2.Distance(endLocation, n.ra.startLocation), Vector2.Distance(endLocation, n.ra.endLocation)) == bridgeDistances.Min()).First();
+                if (closestBridge != null)
+                {
+                    var startDistance = Vector2.Distance(closestBridge.ra.startLocation, endLocation);
+                    var endDistance = Vector2.Distance(closestBridge.ra.endLocation, endLocation);
+
+                    if (Mathf.Min(startDistance, endDistance) <  bridgeAmount * distance - distance)
+                    {
+                        segment.ra.distance = Mathf.Min(startDistance, endDistance);
+                        if (startDistance < endDistance)
+                        {
+                            segment.ChangeEnd(closestBridge.ra.startLocation);
+                            
+                        }
+                        else
+                        {
+                            segment.ChangeEnd(closestBridge.ra.endLocation);
+                        }
+
+                        segment.next = closestBridge;
+                        return true;
+                    }
+                }
+            }
+
+
+            segment.ra.distance = (bridgeAmount += .1f) * distance;
+            segment.ChangeEnd(segment.ra.startLocation + new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad)) * segment.ra.distance);
+            segment.qa.isBridge = true;
+            return true;
+        }
+        return false;
+    }
+
+    public bool PruneSegment(ref RoadSegment segment)
+    {
+        // Try to Prune
+        float distance = segment.ra.distance;
+        float angle = segment.ra.angle;
+
+        bool done = false;
+        bool pruned = false;
+        float pruneAmount = 1;
+        while (!done)
+        {
+            pruneAmount -= .1f;
+            float newDistance = pruneAmount * distance;
+            Vector2 newEndLocation = segment.ra.startLocation + new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad)) * newDistance;
+            Vector2Int newEndLocationCeil = Vector2Int.CeilToInt(newEndLocation) + new Vector2Int(width, height) / 2;
+            Vector2Int newEndLocationFloor = Vector2Int.FloorToInt(newEndLocation) + new Vector2Int(width, height) / 2;
+            if (WaterMap.GetPixel(newEndLocation) != Color.white)
+            {
+
+                pruned = true;
+                done = true;
+            }
+            else if (pruneAmount <= maxPrune)
+            {
+                done = true;
+            }
+
+        }
+
+        if (pruned)
+        {
+            segment.ra.distance = pruneAmount * distance;
+            segment.ra.endLocation = segment.ra.startLocation + new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad)) * segment.ra.distance;
+            return true;
+        }
+        return false;
+    }
+
+
+    public bool RotateSegment(ref RoadSegment segment)
+    {
+        float distance = segment.ra.distance;
+        float angle = segment.ra.angle;
+
+        bool done = false;
+        bool posFound = false;
+        float posRotateAmount = 0;
+        while (!done)
+        {
+            posRotateAmount += 1;
+            float newAngle = angle + posRotateAmount;
+            Vector2 newEndLocation = segment.ra.startLocation + new Vector2(Mathf.Cos(newAngle * Mathf.Deg2Rad), Mathf.Sin(newAngle * Mathf.Deg2Rad)) * distance;
+            Vector2Int newEndLocationCeil = Vector2Int.CeilToInt(newEndLocation);
+            Vector2Int newEndLocationFloor = Vector2Int.FloorToInt(newEndLocation);
+            if  (WaterMap.GetPixel(newEndLocation) != Color.white)
+            {
+                Debug.Log(newEndLocation);
+                Debug.Log(posRotateAmount);
+                posFound = true;
+                done = true;
+            }
+            else if (posRotateAmount >= maxRotateAngle)
+            {
+                posRotateAmount = Mathf.Infinity;
+                done = true;
+            }
+        }
+
+        done = false;
+        bool negFound = false;
+        float negRotateAmount = 0;
+        while (!done)
+        {
+            negRotateAmount -= 1;
+            float newAngle = angle + negRotateAmount;
+            Vector2 newEndLocation = segment.ra.startLocation + new Vector2(Mathf.Cos(newAngle * Mathf.Deg2Rad), Mathf.Sin(newAngle * Mathf.Deg2Rad)) * distance;
+            Vector2Int newEndLocationCeil = Vector2Int.CeilToInt(newEndLocation);
+            Vector2Int newEndLocationFloor = Vector2Int.FloorToInt(newEndLocation);
+            if (WaterMap.GetPixel(newEndLocation) != Color.white)
+            {
+                Debug.Log(newEndLocation);
+                Debug.Log(negRotateAmount);
+                negFound = true;
+                done = true;
+            }
+            else if (Mathf.Abs(negRotateAmount) >= maxRotateAngle)
+            {
+                done = true;
+            }
+        }
+
+        if (!posFound && !negFound)
+        {
+            return false;
+        }
+
+        float ChosenAngle = 0;
+        if (!negFound || posRotateAmount < Mathf.Abs(negRotateAmount))
+        {
+            ChosenAngle = posRotateAmount;
+        }
+        else
+        {
+            ChosenAngle = negRotateAmount;
+        }
+        segment.ra.angle = angle + ChosenAngle;
+        Debug.Log("Changed angle: " + segment.ra.angle);
+        segment.ChangeEnd( segment.ra.startLocation + new Vector2(Mathf.Cos(segment.ra.angle * Mathf.Deg2Rad), Mathf.Sin(segment.ra.angle * Mathf.Deg2Rad)) * segment.ra.distance);
+        return true;
+
     }
 
     public void SplitSegment(RoadSegment rs, Vector2 point)
@@ -934,6 +1189,43 @@ public class CityGenerator : MonoBehaviour
             RotRect = new(this);
         }
 
+        public RoadSegment HighestPopulation(float maxAngle, HeatMap waterMap, HeatMap populationMap, float width, float height)
+        {
+ 
+            float highestPop = 0;
+            float chosenAngle = 0;
+            for (float i = -maxAngle; i <= maxAngle; i++)
+            {
+                RoadAttribute newRa = new RoadAttribute(ra.endLocation, ra.distance, ra.angle + i);
+                Vector2 mapPos = newRa.endLocation + new Vector2(width, height) / 2;
+                Vector2Int intFloor = Vector2Int.FloorToInt(mapPos);
+                Vector2Int intCeil = Vector2Int.CeilToInt(mapPos);
+
+                if (waterMap.GetPixel(newRa.endLocation) == Color.white)
+
+                {
+                    continue;
+                }
+
+                float popAmount = populationMap.GetPixel(intFloor.x, intFloor.y).maxColorComponent;
+
+                if (popAmount == highestPop)
+                {
+                    if (Mathf.Abs(i) < Mathf.Abs(chosenAngle))
+                    {
+                        chosenAngle = i;
+                    }
+                }
+                else if (popAmount > highestPop)
+                {
+                    highestPop = popAmount;
+                    chosenAngle = i;
+                }
+            }
+
+            return ContinueRoad(chosenAngle);
+        }
+
         public RoadSegment ContinueRoad(float angle = 0)
         {
             RoadAttribute newRa = new RoadAttribute(ra.endLocation, ra.distance, ra.angle + angle);
@@ -959,6 +1251,26 @@ public class CityGenerator : MonoBehaviour
             branches.Add(newSegment);
             newSegment.parent = this;
             return newSegment;
+        }
+
+        public void ChangeEnd(Vector2 end)
+        {
+            
+            ra.endLocation = end;
+            Vector2 direction = ra.endLocation - ra.startLocation;
+            ra.distance = Vector2.Distance(ra.endLocation, ra.startLocation);
+            ra.angle = Mathf.Atan2(direction.y , direction.x) * Mathf.Rad2Deg;
+
+            Debug.Log("000000000000000000000");
+            Debug.Log(ra.angle);
+            Debug.Log(ra.startLocation + new Vector2(Mathf.Cos(ra.angle * Mathf.Deg2Rad), Mathf.Sin(ra.angle * Mathf.Deg2Rad)) * ra.distance);
+            Debug.Log(end);
+
+        }
+
+        public void ChangeAngle(float angle)
+        {
+            ra = new(ra.startLocation, ra.distance, angle);
         }
 
         public void DrawSegment()
@@ -1095,7 +1407,7 @@ public struct RoadAttribute
     {
         startLocation = _location;
         distance = _distance;
-        angle = _angle;
+        angle = _angle%360;
         endLocation = startLocation + new Vector2(Mathf.Cos(_angle * Mathf.Deg2Rad), Mathf.Sin(_angle * Mathf.Deg2Rad)) * distance;
     }
 }
@@ -1103,14 +1415,16 @@ public struct RoadAttribute
 public struct QueryAttribute
 {
     public bool isMotorway;
+    public bool isBridge;
     public bool isSevered;
     public float width;
 
-    public QueryAttribute(bool motorway = false, float width = -1, bool severed = false)
+    public QueryAttribute(bool motorway = false, float width = -1, bool severed = false, bool bridge = false)
     {
         this.width = width;
         isMotorway = motorway;
         isSevered = severed;
+        isBridge = bridge;
     }
 
     public void SetMotorway(bool motorway, float width)
