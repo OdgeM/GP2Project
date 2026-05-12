@@ -11,6 +11,10 @@ public class MapConfiguration : MonoBehaviour
     public Toggle riverToggle;
     public Button goButton;
     public GameManager gm;
+    public GameObject timerPanel; 
+
+    public Button rerollButton;
+    public Button confirmButton;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -26,14 +30,30 @@ public class MapConfiguration : MonoBehaviour
 
     public void OnGo()
     {
-        Debug.Log(sizeSlider.value);
+        //Debug.Log(sizeSlider.value);
         gm.GenerateMap((int)(sizeSlider.value), gridBased.isOn, coastalToggle.isOn, riverToggle.isOn, this);
         goButton.interactable = false;
+        confirmButton.interactable = false;
+        rerollButton.interactable = true;
     }
 
     public void Generated()
     {
         goButton.interactable = true;
+
+        confirmButton.interactable = true;
+    }
+
+    public void Reroll()
+    {
+        gm.CreateLineup();
+    }
+
+    public void Confirm()
+    {
+        gm.GenerationDone();
+        timerPanel.SetActive(true);
+        gameObject.SetActive(false);
     }
 
 

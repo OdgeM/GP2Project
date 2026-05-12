@@ -19,8 +19,8 @@ public class GameManager : MonoBehaviour
     private float dryDays = 0;
     public float dryDayMultiplier;
 
-    private List<IncidentPanel> currentIncidents = new();
-    private List<IncidentPanel> resolvedIncidents = new();
+    private List<Incident> currentIncidents = new();
+    private List<Incident> resolvedIncidents = new();
 
     public IncidentMenu incidentMenu;
     public GameObject incidentPanelContent;
@@ -42,6 +42,8 @@ public class GameManager : MonoBehaviour
 
     public Toggle pauseButton;
 
+    public bool isGenerated = false;
+
     public IncidentScreen incidentScreen;
     public CharacterScreen characterScreen;
 
@@ -56,12 +58,20 @@ public class GameManager : MonoBehaviour
     }
 
     float timePassed;
+    float hourCount = 1;
 
     async public void GenerateMap(int Segments, bool grid, bool coastal, bool river, MapConfiguration mapConfiguration )
     {
-        CreateLineup();
-        await map.Generate(Segments, grid, coastal, river, Random.Range(0, int.MaxValue));
+        CreateLineup(); 
+        await map.Generate(Segments, grid, coastal, river, Random.Range(0, 10000));
         mapConfiguration.Generated();
+    }
+
+    public void GenerationDone()
+    {
+        isGenerated = true;
+        lineupManager.Confirm();
+        lineupManager.HealCharacters();
     }
 
     public void CreateLineup()
@@ -73,13 +83,14 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        /*
-        if (!timer.pauseButton.isOn)
+        
+        if (!timer.pauseButton.isOn && isGenerated)
         {
            
+
+
             if (timer.timeElapsed < prevTime)
             {
-                resourceManager.addResources(1);
                 lineupManager.HealCharacters();
 
                 incidentsToday = 0;
@@ -90,65 +101,47 @@ public class GameManager : MonoBehaviour
                 timePassed = timer.timeElapsed - prevTime;
             }
 
-            List<IncidentPanel> activeIncidents = currentIncidents.Where(p => !p.resolved).ToList();
-            foreach(IncidentPanel incidentPanel in activeIncidents)
+            lineupManager.MoveCharacters(timePassed);
+
+            hourCount += timePassed * 24;
+            if (hourCount >= 1)
             {
-                Incident incident = incidentPanel.incident;
-                incident.passTime(timePassed);
+                
+                hourCount = hourCount - 1;
+            }
 
-                if (incident.length < 0)
+            
+            List<Incident> activeIncidents = currentIncidents.Where(p => !p.resolved).ToList();
+            foreach(Incident i in activeIncidents)
+            {
+                if (i.ReadyToResolve)
                 {
-                    incident.Expire(timer.currentDate);
+                    i.ResolveIncident(timer.currentDate);
+                    continue;
+                }
+                
+                i.passTime(timePassed);
 
-                    resourceManager.TrustChange(incident.trustValue * -2);
-
-                    IncidentPanel panel = currentIncidents.Where(inc => inc.incident == incident).FirstOrDefault();
-                    panel.Expire();
-                    if (incidentScreen.incident == incident)
-                    {
-                        incidentScreen.IncidentOver(true);
-                    }
+                if (i.length < 0)
+                {
+                    i.Expire(timer.currentDate);
                 }
             }
 
-            if (incidentsToday < maxIncidentsPerDay)
-            {
-                float incidentChance = timePassed / daysPerIncident;
-                Debug.Log(incidentChance);
-                if (Random.value < incidentChance)
-                {
-                    incidentsToday++;
-                    CreateIncident();
-                }
-                else
-                {
-                    dryDays += timePassed;
-                }
-            }
-
+            map.Clock(timePassed * 24);
             prevTime = timer.timeElapsed;
         }
         else
         {
             timePassed = 0;
-        }*/
+        }
     }
 
-    public void CreateIncident()
+    public void CreateIncident(Incident incident)
     {
-        Debug.Log("INCIDENT");
-        Villain incidentVillain = lineupManager.SelectVillain();
-        Incident incident = map.GenerateIncident(incidentVillain);
-
-        IncidentPanel newPanel = Instantiate(incidentPanelPrefab, incidentPanelContent.transform).GetComponent<IncidentPanel>();
-        HeroSprite newSprite = Instantiate(spritePrefab, newPanel.locationNode.transform).GetComponent<HeroSprite>();
-
-        incidentMenu.PlacePanel(newPanel);
-        newPanel.AssignIncident(incident, newSprite);
-
-        newPanel.button.onClick.AddListener(delegate { incidentSelected(newPanel.incident); });
+      
         
-        currentIncidents.Add(newPanel);
+        currentIncidents.Add(incident);
     }
 
     public void SelectHero()
@@ -224,12 +217,11 @@ public class GameManager : MonoBehaviour
         mapButton.interactable = true;
     }
 
-    public void ResolveIncident()
+    public void ResolveIncident(Incident incident)
     {
 
 
-        Incident incident = incidentScreen.incident;
-        IncidentPanel panel = currentIncidents.Where(inc => inc.incident == incident).FirstOrDefault();
+     
         
         bool won = incident.ResolveIncident(timer.currentDate);
 
@@ -241,7 +233,6 @@ public class GameManager : MonoBehaviour
         resourceManager.TrustChange(multiplier * incident.trustValue);
 
         StartCoroutine(Fight(incident.hero, incident.villain));
-        panel.Resolve(won);
         incidentScreen.IncidentOver();
     }
 

@@ -1,22 +1,44 @@
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class Character : MonoBehaviour
 {
+    public enum States
+    {
+        Patrolling,
+        Resting,
+        Training,
+        Fighting,
+        Scheming,
+        Attacking,
+        Responding,
+        Dead
+    }
+
+    public States currentState = States.Resting;
+    public Dictionary<States, float> StatePriorities = new();
+    public Building patrolTarget;
+    public Building lastTarget;
+
     public bool useSeed = false;
     public int characterSeed = 1234567;
     public float alienChance = 0.1f;
     public bool isAlien = false;
-
+    public Map map;
+    public Vector2 position = new();
+    public Building HQ;
     public bool isHero;
 
     [Header("Visuals")]
 
     public HeroSprite sprite;
 
-
+    public float speed;
     public float pantsChance = .5f;
     public float capeChance = .5f;
     public float insigniaChance = .5f;
@@ -73,6 +95,8 @@ public class Character : MonoBehaviour
     public int maxHP = 0;
     public int HP;
 
+    public float heroism = 0;
+
     public CharacterPanel panel;
 
     public bool ready  = false;
@@ -96,7 +120,7 @@ public class Character : MonoBehaviour
 
     public void Start()
     {
-        Debug.Log("HERE");
+        //Debug.Log("HERE");
         if (Random.value < alienChance)
         {
             isAlien = true;
@@ -119,12 +143,13 @@ public class Character : MonoBehaviour
 
         GenerateColours();
         GenerateHeroName();
-        SetSprite(sprite);
+       
 
         GenerateStats();
 
         //panel.AssignCharacter(this);
         ready = true;
+        sprite.gameObject.SetActive(false);
     }
 
     public virtual void GenerateStats()
@@ -139,6 +164,7 @@ public class Character : MonoBehaviour
     {
         return;
     }    
+
 
     private void GenerateColours()
     {
@@ -165,6 +191,7 @@ public class Character : MonoBehaviour
         }
 
 
+
         Vector3 mainColourHSV = GenerateColour();
         mainColour = Color.HSVToRGB(mainColourHSV.x,mainColourHSV.y,mainColourHSV.z);
 
@@ -179,13 +206,13 @@ public class Character : MonoBehaviour
 
         if (accentColourHSV.z == 0)
         {
-            Debug.Log("HUH");
+            //Debug.Log("HUH");
         }
 
         accentColour = Color.HSVToRGB(accentColourHSV.x,accentColourHSV.y, accentColourHSV.z);
 
         if (accentColour.r + accentColour.g + accentColour.b == 0)
-            Debug.Log(accentColourHSV);
+            //Debug.Log(accentColourHSV);
 
         bodyColour = mainColour;
 
@@ -262,6 +289,74 @@ public class Character : MonoBehaviour
         _sprite.SetCape(hasCape, capeColour);
     }
 
+    public virtual void GetState(float amount)
+    {
+        if (!isDead)
+        {
+            StatePriorities[States.Resting] = 1 - HP / maxHP;
+           
+
+        }
+       
+    }
+
+    public virtual void Move(float amount, float TimePassed)
+    {
+        if (currentState == States.Resting)
+        {
+
+            Heal(amount / 10);
+        }
+        else if (currentState == States.Patrolling)
+        {
+            Patrol();
+        }
+    }
+
+    public Building GetPatrolTarget()
+    {
+        var buildingList = map.buildings.Where(n => n.centre != position && n.index != 1 && n.incident == null).ToList();
+
+        if (buildingList.Count < 1)
+        {
+            return null;
+        }
+        return buildingList[Random.Range(0, buildingList.Count())];
+
+        
+    }
+
+    public void Patrol()
+    {
+        if (patrolTarget == null)
+        {
+            patrolTarget = GetPatrolTarget();
+            return;
+        }
+
+        var direction = (patrolTarget.centre - position).normalized;
+        if (Vector2.Distance(patrolTarget.centre, position) < speed)
+        {
+            Debug.Log("HEREE");
+            SetLocation(patrolTarget.centre);
+            patrolTarget = null;
+        }
+        else
+        {
+            SetLocation(position + direction * speed);
+        }
+
+
+
+
+
+
+    }
+
+    public virtual void SetLocation(Vector2 location)
+    {
+        position = location;
+    }
     public void TakeDamage(float damage, Character attacker)
     {
         int damageInt = (int)Mathf.Floor(damage);
@@ -278,9 +373,17 @@ public class Character : MonoBehaviour
 
 
     }
-    public void Heal(int amount)
+    public void Heal(float amount)
     {
-        HP += amount;
+        if(HQ != null && position != HQ.centre)
+        {
+            patrolTarget = HQ;
+            Patrol();
+            return;
+        }
+
+
+        HP += Mathf.CeilToInt(maxHP * amount);
         HP = Mathf.Clamp(HP, 0, maxHP);
 
 

@@ -17,8 +17,12 @@ public class Incident
 
     public float trustValue;
 
+    public bool resolved = false;
+
     public float incidentStakes = 1;
     public string state = "Ongoing";
+
+    public bool ReadyToResolve = false;
 
     public float damageDone;
     public Character Victim;
@@ -29,10 +33,11 @@ public class Incident
     public float dateCompleted;
     public Incident(Building target, Villain _villain)
     {
+        Target = target;
         villain = _villain;
         villain.SetAvailable(false);
         trustValue = ((villain.attack + villain.defence) / 2) + Random.value ;
-
+        /*
         if (villain.isAlien)
         {
             string flavour = alienFlavour[Random.Range(0, alienFlavour.Length)];
@@ -47,6 +52,7 @@ public class Incident
             string flavour = villainFlavour[Random.Range(0, villainFlavour.Length)];
             incidentFlavour = string.Format(flavour, villain.heroName, connector, Target.BuildingName);
         }
+        */
          
     }
 
@@ -85,12 +91,12 @@ public class Incident
         Attacker = villain;
         float winningScore = villainScore;
 
-        Debug.Log(heroWinChance);
+        //Debug.Log(heroWinChance);
         float value = Random.value;
-        Debug.Log(value);
+        //Debug.Log(value);
         if (value < heroWinChance)
         {
-            Debug.Log("HERo0");
+            //Debug.Log("HERo0");
             Victim = villain;
             Attacker = hero;
             winningScore = heroScore;
@@ -113,8 +119,9 @@ public class Incident
         Victim.TakeDamage(damageDone, Attacker);
         Target.Deactivate();
         state = "Over";
-
-
+        villain.currentIncident = null;
+        hero.incident = null;
+        resolved = true;
         return result;
     }
 

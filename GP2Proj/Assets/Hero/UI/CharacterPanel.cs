@@ -46,16 +46,7 @@ public class CharacterPanel : MonoBehaviour
 
     public void UpdateBusy()
     {
-
-        if (character.isAvailable)
-        {
-            availability.text = availableText;
-        }
-        else
-        {
-            availability.text = busyText;
-        }
-        
+        availability.text = character.currentState.ToString();
     }
 
     public void TakeDamage()

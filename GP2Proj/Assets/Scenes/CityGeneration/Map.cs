@@ -6,13 +6,13 @@ using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using Random = System.Random;
-
+using Unity.IO.LowLevel.Unsafe;
 public class Node
 {
     public Vector2 Position;
     public List<Edge> Edges = new();
     public bool Motorway = false;
-
+    public GameObject iconPrefab;
     public Node(bool isMotorway = false)
     {
         Motorway = isMotorway;
@@ -35,6 +35,9 @@ public class Building
     public Vector2 centre;
     public string BuildingName;
     public bool activeIncident = false;
+    public Incident incident;
+
+    public int index;
     public Building(RotatedRect r, float h, Vector2 c)
     {
         rect = r;
@@ -42,8 +45,17 @@ public class Building
         centre = c;
     }
 
+    public void Activate(Incident i)
+    {
+        incident = i;
+        activeIncident = true;
+        index = 2;
+    }
+
     public void Deactivate()
     {
+        incident = null;
+        index = 0;
         activeIncident = false;
     }
 }
@@ -180,10 +192,10 @@ public class RotatedRect
 
     public void draw()
     {
-        Debug.DrawLine(Vertices[1], Vertices[0], Color.red, Mathf.Infinity);
-        Debug.DrawLine(Vertices[2], Vertices[1], Color.red, Mathf.Infinity);
-        Debug.DrawLine(Vertices[3], Vertices[2], Color.red, Mathf.Infinity);
-        Debug.DrawLine(Vertices[0], Vertices[3], Color.red, Mathf.Infinity);
+        //Debug.DrawLine(Vertices[1], Vertices[0], Color.red, Mathf.Infinity);
+        //Debug.DrawLine(Vertices[2], Vertices[1], Color.red, Mathf.Infinity);
+        //Debug.DrawLine(Vertices[3], Vertices[2], Color.red, Mathf.Infinity);
+        //Debug.DrawLine(Vertices[0], Vertices[3], Color.red, Mathf.Infinity);
     }
 
     public bool Collides(RotatedRect Other)
@@ -243,6 +255,26 @@ public class Map : MonoBehaviour
     public Material WaterMaterial;
     public Material MapMaterial;
     public float Time = 9;
+    public List<GameObject> heroBlips = new();
+    public GameObject blipPrefab;
+
+    public GameManager gm;
+
+    public List<Building> buildings = new();
+
+    public int hqIndex = -1;
+
+    public void AddHero(Hero hero)
+    {
+        var newBlip = Instantiate(blipPrefab, this.transform);
+        heroBlips.Add(newBlip);
+        hero.icon = newBlip;
+        hero.map = this;
+        hero.HQ = buildings[hqIndex];
+        newBlip.transform.localPosition = new(0, 0, -1);
+        hero.SetLocation(buildings[hqIndex].centre);
+        
+    }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     public async Awaitable Generate(int segments, bool gridBased, bool coastal, bool river, int seed)
     {
@@ -294,32 +326,49 @@ public class Map : MonoBehaviour
 
             
         await Generator.CreateCity(r);
-        Debug.Log(Generator.segmentList.Count);
+
+        float maxHeight = Generator.buildings.Select(n => n.height).Max();
+        buildings = Generator.buildings;
+        Debug.Log(buildings.Count());
+
+        //Debug.Log(Generator.segmentList.Count);
         foreach (var road in Generator.segmentList)
         {
             cRenderer.roads.Add(road);
         }
 
+
+        int n = 0;
         foreach (var b in Generator.buildings)
         {
+            if (b.height == maxHeight && hqIndex == -1)
+            {
+                hqIndex = n;
+                b.index = 1;
+            }
+
+            n++;
             cRenderer.buildings.Add(b);
         }
 
+
+
+
         cRenderer.Generate(Time);
-        StartCoroutine(Clock());
+        
 
     }
 
+    
 
-    IEnumerator Clock()
+
+    public void Clock(float timeElapsed)
     {
-        while (true)
-        {
-            yield return new WaitForSeconds(1);
-            Time += .25f;
-            if (Time == 24)
+ 
+            Time += timeElapsed;
+            if (Time >= 24)
             {
-                Time = 0;
+                Time = Time-24;
             }
             cRenderer.Generate(Time);
             float NightTime = 1;
@@ -338,16 +387,20 @@ public class Map : MonoBehaviour
                 NightTime = Mathf.Lerp(.3f, 1, ((float)(Time - 5) / (7 - 5)));
             }
 
-            Debug.Log(NightTime);
+            //Debug.Log(NightTime);
 
             MapMaterial.SetFloat("_NightTime", NightTime);
-        }
+        
     }
 
 
-    public Incident GenerateIncident(Villain villain)
+    public void GenerateIncident(Villain villain, Building target)
     {
-        return new Incident(Generator.buildings[0], villain);
+        
+        Incident inc = new Incident(target, villain);
+        target.Activate(inc);
+        gm.CreateIncident(inc);
+        villain.currentIncident = inc; 
     }
 
 

@@ -209,12 +209,18 @@ public class CityGenerator : MonoBehaviour
             b.RotRect.draw();
         }
 
+        Vector2 startLocation = new(random.Next(-width / 4, width / 4), random.Next(-width / 4, width / 4));
+
+        while (WaterMap.GetPixel(startLocation) == Color.white)
+        {
+            startLocation = new(random.Next(-width / 4, width / 4), random.Next(-height / 4, height / 4));
+        }
 
         // Initialise Priority Queue
         RoadSegment segment = new RoadSegment
             (
                 0,
-                new RoadAttribute(new Vector2(0, 0), motorwaySegmentLength, 0),
+                new RoadAttribute(startLocation, motorwaySegmentLength, 0),
                 new QueryAttribute(true, motorwaySegmentWidth)
             );
         priorityQueue.Add(segment);
@@ -223,7 +229,7 @@ public class CityGenerator : MonoBehaviour
         segment = new RoadSegment
             (
                 0,
-                new RoadAttribute(new Vector2(0, 0), motorwaySegmentLength, 90),
+                new RoadAttribute(startLocation, motorwaySegmentLength, 90),
                 new QueryAttribute(true, motorwaySegmentWidth)
             );
         priorityQueue.Add(segment);
@@ -231,7 +237,7 @@ public class CityGenerator : MonoBehaviour
         segment = new RoadSegment
             (
                 0,
-                new RoadAttribute(new Vector2(0, 0), motorwaySegmentLength, 180),
+                new RoadAttribute(startLocation, motorwaySegmentLength, 180),
                 new QueryAttribute(true, motorwaySegmentWidth)
             );
         priorityQueue.Add(segment);
@@ -239,13 +245,13 @@ public class CityGenerator : MonoBehaviour
         segment = new RoadSegment
             (
                 0,
-                new RoadAttribute(new Vector2(0, 0), motorwaySegmentLength, 270),
+                new RoadAttribute(startLocation, motorwaySegmentLength, 270),
                 new QueryAttribute(true, motorwaySegmentWidth)
             );
         priorityQueue.Add(segment);
 
         Generate();
-        Debug.Log(segmentList.Count());
+        //Debug.Log(segmentList.Count());
         foreach (var seg in segmentList)
         {
             seg.RotRect = new(seg, 0);
@@ -270,7 +276,7 @@ public class CityGenerator : MonoBehaviour
 
             
             
-            Debug.Log(start--);
+            //Debug.Log(start--);
         }
 
         await Awaitable.MainThreadAsync();
@@ -384,7 +390,7 @@ public class CityGenerator : MonoBehaviour
 
             for (int i = 0; i < 4; i++)
             {
-                Debug.DrawLine(corners[i], corners[(i + 1) % 4], Color.green, 100f);
+                //Debug.DrawLine(corners[i], corners[(i + 1) % 4], Color.green, 100f);
             }
         }
     }
@@ -396,7 +402,7 @@ public class CityGenerator : MonoBehaviour
         
         while (priorityQueue.Count > 0 && segmentList.Count < maxSegments)
         {
-            Debug.Log("ROADS: " + segmentList.Count);
+            //Debug.Log("ROADS: " + segmentList.Count);
             priorityQueue = priorityQueue.OrderByDescending(o => o.t).ToList();
             RoadSegment segment = priorityQueue.Last();
             priorityQueue.RemoveAt(priorityQueue.Count - 1);
@@ -565,7 +571,7 @@ public class CityGenerator : MonoBehaviour
     {
         for (int i = 0; i < poly.Count; i++)
         {
-            Debug.DrawLine(poly[i], poly[(i + 1) % poly.Count], color, 100f);
+            //Debug.DrawLine(poly[i], poly[(i + 1) % poly.Count], color, 100f);
         }
     }
 
@@ -749,7 +755,7 @@ public class CityGenerator : MonoBehaviour
 
         }
 
-        // Debug.Log(")_)_)_)_");
+        // //Debug.Log(")_)_)_)_");
         Vector2 MapEnd = Vector2Int.FloorToInt(segment.ra.endLocation) + new Vector2Int(width, height) / 2;
         Vector2Int EndFloor = Vector2Int.FloorToInt(MapEnd);
         Vector2Int EndCeil = Vector2Int.CeilToInt(MapEnd);
@@ -766,7 +772,7 @@ public class CityGenerator : MonoBehaviour
             }
 
 
-            Debug.Log(WaterMap.GetPixel(segment.ra.endLocation));
+            //Debug.Log(WaterMap.GetPixel(segment.ra.endLocation));
         }
 
 
@@ -912,7 +918,7 @@ public class CityGenerator : MonoBehaviour
         {
             if (BridgeSegment(ref segment))
             {
-                Debug.Log("Bridge");
+                //Debug.Log("Bridge");
                 return true;
             }
         }
@@ -921,7 +927,7 @@ public class CityGenerator : MonoBehaviour
         // Try to Rotate
         if (RotateSegment(ref segment))
         {
-            Debug.Log("Rotate");
+            //Debug.Log("Rotate");
             return true;
         }
 
@@ -929,7 +935,7 @@ public class CityGenerator : MonoBehaviour
         // Try to prune
         if (PruneSegment(ref segment))
         {
-            Debug.Log("Prune");
+            //Debug.Log("Prune");
             return true;
         }
 
@@ -1064,8 +1070,8 @@ public class CityGenerator : MonoBehaviour
             Vector2Int newEndLocationFloor = Vector2Int.FloorToInt(newEndLocation);
             if  (WaterMap.GetPixel(newEndLocation) != Color.white)
             {
-                Debug.Log(newEndLocation);
-                Debug.Log(posRotateAmount);
+                //Debug.Log(newEndLocation);
+                //Debug.Log(posRotateAmount);
                 posFound = true;
                 done = true;
             }
@@ -1088,8 +1094,8 @@ public class CityGenerator : MonoBehaviour
             Vector2Int newEndLocationFloor = Vector2Int.FloorToInt(newEndLocation);
             if (WaterMap.GetPixel(newEndLocation) != Color.white)
             {
-                Debug.Log(newEndLocation);
-                Debug.Log(negRotateAmount);
+                //Debug.Log(newEndLocation);
+                //Debug.Log(negRotateAmount);
                 negFound = true;
                 done = true;
             }
@@ -1114,7 +1120,7 @@ public class CityGenerator : MonoBehaviour
             ChosenAngle = negRotateAmount;
         }
         segment.ra.angle = angle + ChosenAngle;
-        Debug.Log("Changed angle: " + segment.ra.angle);
+        //Debug.Log("Changed angle: " + segment.ra.angle);
         segment.ChangeEnd( segment.ra.startLocation + new Vector2(Mathf.Cos(segment.ra.angle * Mathf.Deg2Rad), Mathf.Sin(segment.ra.angle * Mathf.Deg2Rad)) * segment.ra.distance);
         return true;
 
@@ -1182,7 +1188,7 @@ public class CityGenerator : MonoBehaviour
             rectangle.yMin = Mathf.Min(ra.startLocation.y, ra.endLocation.y) - widthFactor.y - .25f * (Mathf.Abs(ra.startLocation.y - ra.endLocation.y) + widthFactor.y);
             rectangle.yMax = Mathf.Max(ra.startLocation.y, ra.endLocation.y) + widthFactor.y + .25f * (Mathf.Abs(ra.startLocation.y - ra.endLocation.y) + widthFactor.y);
 
-            // Debug.DrawLine(new Vector2(rectangle.xMin, rectangle.yMin), new Vector2(rectangle.xMax, rectangle.yMin), Color.red, Mathf.Infinity);
+            // //Debug.DrawLine(new Vector2(rectangle.xMin, rectangle.yMin), new Vector2(rectangle.xMax, rectangle.yMin), Color.red, Mathf.Infinity);
         }
 
         public void SetMotorway(bool motorway, float width)
@@ -1263,10 +1269,10 @@ public class CityGenerator : MonoBehaviour
             ra.distance = Vector2.Distance(ra.endLocation, ra.startLocation);
             ra.angle = Mathf.Atan2(direction.y , direction.x) * Mathf.Rad2Deg;
 
-            Debug.Log("000000000000000000000");
-            Debug.Log(ra.angle);
-            Debug.Log(ra.startLocation + new Vector2(Mathf.Cos(ra.angle * Mathf.Deg2Rad), Mathf.Sin(ra.angle * Mathf.Deg2Rad)) * ra.distance);
-            Debug.Log(end);
+            //Debug.Log("000000000000000000000");
+            //Debug.Log(ra.angle);
+            //Debug.Log(ra.startLocation + new Vector2(Mathf.Cos(ra.angle * Mathf.Deg2Rad), Mathf.Sin(ra.angle * Mathf.Deg2Rad)) * ra.distance);
+            //Debug.Log(end);
 
         }
 
@@ -1285,7 +1291,7 @@ public class CityGenerator : MonoBehaviour
 
 
     }
-    Vector2? Intersect(RoadSegment v1, RoadSegment v2, bool debug = false)
+    Vector2? Intersect(RoadSegment v1, RoadSegment v2, bool Debug = false)
     {
         Vector2 q = v2.ra.startLocation;
         Vector2 p = v1.ra.startLocation;
@@ -1298,11 +1304,11 @@ public class CityGenerator : MonoBehaviour
 
 
         /*
-        Debug.Log("q: " + q);
-        Debug.Log("p: " + p);*/
+        //Debug.Log("q: " + q);
+        //Debug.Log("p: " + p);*/
 
         float rs = cross2d(r, s);
-        //Debug.Log("rs: " + rs);
+        ////Debug.Log("rs: " + rs);
 
 
         if (Mathf.Abs(rs) <= 1)
@@ -1320,7 +1326,7 @@ public class CityGenerator : MonoBehaviour
 
                 if ((t0 >= 0 && t0 <= 1) || (t1 >= 0 && t1 <= 1))
                 {
-                    Debug.Log("HERE");
+                    //Debug.Log("HERE");
 
                     if (Vector2.Distance(q, p) < Vector2.Distance(v2.ra.endLocation, p))
                     {

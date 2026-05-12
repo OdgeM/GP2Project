@@ -148,7 +148,7 @@ public class CityRenderer : MonoBehaviour
                 }
 
             }
-            AddQuad(roof, BuildingColour, ref vertices, ref tris, ref colours, building.height);
+            AddQuad(roof, BuildingColour, ref vertices, ref tris, ref colours, building.index);
             
         }
 
@@ -177,7 +177,7 @@ public class CityRenderer : MonoBehaviour
         ref List<Vector3> verts,
         ref List<int> tris,
         ref List<Color> cols,
-        float height = 0,
+        int index = 0,
         float opacity = 1
     )
     {
@@ -186,7 +186,7 @@ public class CityRenderer : MonoBehaviour
         foreach (var vertex in v)
         {
             verts.Add(vertex);
-            uv2.Add(new Vector2(height, opacity));
+            uv2.Add(new Vector2(index, opacity));
             cols.Add(colour);
 
         }

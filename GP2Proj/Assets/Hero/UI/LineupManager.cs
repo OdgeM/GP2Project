@@ -8,6 +8,7 @@ public class LineupManager : MonoBehaviour
     public List<Hero> heroLineup;
     public int startingHeroSize = 3;
     public GameObject heroPrefab;
+    public Map map; 
 
     public List<Villain> villainLineup;
     private List<Villain> activeVillains = new();
@@ -29,6 +30,11 @@ public class LineupManager : MonoBehaviour
 
     public GameManager gameManager;
 
+    public Hero selectedHero;
+
+    public Material blipMaterial;
+     public Material highlightMaterial;
+
     public void CreateHeroes()
     {
         villainLineup.Clear();
@@ -37,6 +43,12 @@ public class LineupManager : MonoBehaviour
         for (int i = 0; i < childCount; i++) {
             DestroyImmediate(heroPanelContent.transform.GetChild(0).gameObject);
             }
+
+        childCount = villainPanelContent.transform.childCount;
+        for (int i = 0; i < childCount; i++)
+        {
+            DestroyImmediate(villainPanelContent.transform.GetChild(0).gameObject);
+        }
         /*while (heroPanelContent.transform.childCount > 0)
         {
             Destroy(heroPanelContent.transform.GetChild(0).gameObject);
@@ -63,14 +75,26 @@ public class LineupManager : MonoBehaviour
             CreateVillain();
         }
     }
+    public void Confirm()
+    {
+        foreach (var hero in heroLineup)
+        {
+            map.AddHero(hero);
+            hero.map = map;
+        }
 
+        foreach (var villain in villainLineup)
+        {
+            villain.map = map;
+        }
+    }
 
     public Hero CreateHero()
     {
-        Debug.Log("HERE");
+        //Debug.Log("HERE");
         CharacterPanel newPanel = Instantiate(characterPanelPrefab, heroPanelContent.transform).GetComponent<CharacterPanel>();
 
-        Hero newHero = Instantiate(heroPrefab, newPanel.locationNode.transform).GetComponent<Hero>();   
+        Hero newHero = Instantiate(heroPrefab, heroPanelContent.transform).GetComponent<Hero>();   
         newHero.panel = newPanel;
 
         heroLineup.Add(newHero);
@@ -79,10 +103,28 @@ public class LineupManager : MonoBehaviour
 
         newPanel.AssignCharacter(newHero);  
 
-        newPanel.button.onClick.AddListener(delegate { gameManager.HeroSelected(newHero); });
+        newPanel.button.onClick.AddListener(delegate { SelectHero(newHero); });
         
 
         return newHero;
+    }
+
+    public void SelectHero(Hero newHero)
+    {
+        if (selectedHero != null)
+        {
+            selectedHero.icon.GetComponent<CanvasRenderer>().SetMaterial(blipMaterial,0);
+        }
+
+        if (newHero == selectedHero)
+        {
+            selectedHero = null;
+        }
+        else
+        {
+            selectedHero = newHero;
+            selectedHero.icon.GetComponent<CanvasRenderer>().SetMaterial(highlightMaterial, 0);
+        }
     }
 
     private Villain CreateVillain()
@@ -104,17 +146,33 @@ public class LineupManager : MonoBehaviour
 
     public void HealCharacters()
     {
-        List<Hero> aliveHeroes = heroLineup.Where(h => !h.isAvailable).ToList();
-        List<Villain> aliveVillain = villainLineup.Where(h => !h.isAvailable).ToList();
+        List<Hero> aliveHeroes = heroLineup.Where(h => h.currentState != Character.States.Dead).ToList();
+        List<Villain> aliveVillain = villainLineup.Where(h => h.currentState != Character.States.Dead).ToList();
 
         foreach(Hero h in aliveHeroes)
         {
-            h.Heal( Random.Range(0, 4));
+            h.GetState(Random.value );
         }
 
         foreach(Villain v in aliveVillain)
         {
-            v.Heal(Random.Range(0, 4));
+            v.GetState(Random.value);
+        }
+    }
+
+    public void MoveCharacters(float time)
+    {
+        List<Hero> aliveHeroes = heroLineup.Where(h => h.currentState != Character.States.Dead).ToList();
+        List<Villain> aliveVillain = villainLineup.Where(h => h.currentState != Character.States.Dead).ToList();
+
+        foreach (Hero h in aliveHeroes)
+        {
+            h.Move(Random.value, time);
+        }
+
+        foreach (Villain v in aliveVillain)
+        {
+            v.Move(Random.value, time);
         }
     }
 

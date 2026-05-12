@@ -31,16 +31,16 @@ public class Timer : MonoBehaviour
 
     public void ButtonPressed()
     {
-
+        //Debug.Log(toggleGroup.GetFirstActiveToggle().name);
         switch (toggleGroup.GetFirstActiveToggle().name)
         {
-            case "Speed1":
+            case "1":
                 currentSpeed = speed1;
                 break;
-            case "Speed2":
+            case "2":
                 currentSpeed = speed2;
                 break;
-            case "Speed3":
+            case "3":
                 currentSpeed = speed3;
                 break;
             case "Pause":
@@ -67,7 +67,7 @@ public class Timer : MonoBehaviour
                 }
                 float hour = timeElapsed * 24;
                 float minute = hour % 1 * 60;
-
+                //Debug.Log(gameTimeElapsed);
                 dateLabel.text = "Day: " + Time2Date(gameTimeElapsed);
 
             }
