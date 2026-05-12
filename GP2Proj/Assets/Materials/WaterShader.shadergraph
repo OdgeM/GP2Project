@@ -104,6 +104,9 @@
         },
         {
             "m_Id": "13437bf08b634112aad9acbc31974ed6"
+        },
+        {
+            "m_Id": "5b49b22cb17e450da57c0a94a9ae3468"
         }
     ],
     "m_GroupDatas": [],
@@ -231,6 +234,20 @@
             "m_InputSlot": {
                 "m_Node": {
                     "m_Id": "d342bd584c7142b79458b8a321e95b58"
+                },
+                "m_SlotId": 0
+            }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "5b49b22cb17e450da57c0a94a9ae3468"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "3ef567277ac14baf862d8363b02fd486"
                 },
                 "m_SlotId": 0
             }
@@ -1883,6 +1900,42 @@
 
 {
     "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.PropertyNode",
+    "m_ObjectId": "5b49b22cb17e450da57c0a94a9ae3468",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "Property",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -1975.4158935546875,
+            "y": 884.151611328125,
+            "width": 0.0,
+            "height": 0.0
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "ab160edcc8314e4b959abf3abf06c58b"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 1,
+    "m_PreviewExpanded": true,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_Property": {
+        "m_Id": "b29c4748c7d24ac6a78d981d8c1ce1a8"
+    }
+}
+
+{
+    "m_SGVersion": 0,
     "m_Type": "UnityEditor.ShaderGraph.Vector1MaterialSlot",
     "m_ObjectId": "5eec16551c444bdbbb52f9d21490658b",
     "m_Id": 1,
@@ -2736,6 +2789,22 @@
     "m_CustomColors": {
         "m_SerializableColors": []
     }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector1MaterialSlot",
+    "m_ObjectId": "ab160edcc8314e4b959abf3abf06c58b",
+    "m_Id": 0,
+    "m_DisplayName": "Seed",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Out",
+    "m_StageCapability": 3,
+    "m_Value": 0.0,
+    "m_DefaultValue": 0.0,
+    "m_Labels": [],
+    "m_LiteralMode": false
 }
 
 {

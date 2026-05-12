@@ -33,16 +33,19 @@ public class LineupManager : MonoBehaviour
     {
         villainLineup.Clear();
         heroLineup.Clear();
-
-        while (heroPanelContent.transform.childCount != 0)
+        int childCount = heroPanelContent.transform.childCount;
+        for (int i = 0; i < childCount; i++) {
+            DestroyImmediate(heroPanelContent.transform.GetChild(0).gameObject);
+            }
+        /*while (heroPanelContent.transform.childCount > 0)
         {
             Destroy(heroPanelContent.transform.GetChild(0).gameObject);
-        }
-
+        }*/
+        /*
         while (villainPanelContent.transform.childCount != 0)
         {
             Destroy(villainPanelContent.transform.GetChild(0).gameObject);
-        }
+        }*/
 
         //InitialiseLineup();
         InitialiseLineup();

@@ -26,7 +26,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _RiverCoast: 1
-    - _Seed: 1.4215215e+9
+    - _Seed: 2.1313481e+9
     - _Water: 0
     m_Colors:
     - _Color: {r: 0, g: 0, b: 0, a: 1}
